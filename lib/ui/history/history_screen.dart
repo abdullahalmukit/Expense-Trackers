@@ -11,6 +11,7 @@ import '../../providers.dart';
 import '../entry/entry_sheet.dart';
 import '../widgets/charts.dart';
 import '../widgets/common.dart';
+import '../../core/i18n.dart';
 
 class HistoryFilter {
   final int? type;
@@ -39,10 +40,14 @@ class HistoryFilter {
       range != null ||
       debtOnly;
 
-  int get count =>
-      [type != null, categories.isNotEmpty, persons.isNotEmpty, minAmount != null || maxAmount != null, range != null, debtOnly]
-          .where((b) => b)
-          .length;
+  int get count => [
+    type != null,
+    categories.isNotEmpty,
+    persons.isNotEmpty,
+    minAmount != null || maxAmount != null,
+    range != null,
+    debtOnly,
+  ].where((b) => b).length;
 
   bool matches(Txn t) {
     if (type != null && t.type != type) return false;
@@ -67,7 +72,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   bool _searching = false;
   bool _heatmap = false;
   int? _day;
-  HistoryFilter _filter = const HistoryFilter();
+  HistoryFilter _filter = HistoryFilter();
 
   @override
   void dispose() {
@@ -100,8 +105,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
-        content: Text('এন্ট্রি মুছে ফেলা হয়েছে (${money(t.amount)})'),
-        duration: const Duration(seconds: 5),
+        content: Text(
+          tr('এন্ট্রি মুছে ফেলা হয়েছে (${money(t.amount)})', 'Entry deleted (${money(t.amount)})'),
+        ),
+        duration: Duration(seconds: 5),
         persist: false,
         action: SnackBarAction(
           label: 'Undo',
@@ -141,14 +148,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       final dInc = fin.sumOf(txns, TxType.income);
       rows.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  relativeDayLabel(day),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+                child: Text(relativeDayLabel(day), style: TextStyle(fontWeight: FontWeight.w700)),
               ),
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * .5),
@@ -158,9 +162,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   child: Row(
                     children: [
                       if (dInc > 0)
-                        Text('+${money(dInc)}  ', style: const TextStyle(color: AppColors.income, fontSize: 12, fontWeight: FontWeight.w700)),
+                        Text(
+                          '+${money(dInc)}  ',
+                          style: TextStyle(
+                            color: AppColors.income,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       if (dExp > 0)
-                        Text('-${money(dExp)}', style: const TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.w700)),
+                        Text(
+                          '-${money(dExp)}',
+                          style: TextStyle(
+                            color: AppColors.expense,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -177,11 +195,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             background: Container(
               color: AppColors.expense,
               alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              child: const Row(
+              padding: EdgeInsets.only(right: 24),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text('মুছুন', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  Text(
+                    tr('মুছুন', 'Delete'),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
                   SizedBox(width: 8),
                   Icon(Icons.delete_outline, color: Colors.white),
                 ],
@@ -206,17 +227,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             ? TextField(
                 controller: _search,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'বিবরণ, ক্যাটাগরি, নাম, টাকা…',
+                decoration: InputDecoration(
+                  hintText: tr('বিবরণ, ক্যাটাগরি, নাম, টাকা…', 'Note, category, name, amount…'),
                   border: InputBorder.none,
                   filled: false,
                 ),
                 onChanged: (_) => setState(() {}),
               )
-            : const Text('হিস্টোরি'),
+            : Text(tr('হিস্টোরি', 'History')),
         actions: [
           IconButton(
-            tooltip: 'সার্চ',
+            tooltip: tr('সার্চ', 'Search'),
             icon: Icon(_searching ? Icons.close : Icons.search),
             onPressed: () => setState(() {
               _searching = !_searching;
@@ -224,16 +245,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             }),
           ),
           IconButton(
-            tooltip: 'ক্যালেন্ডার',
+            tooltip: tr('ক্যালেন্ডার', 'Calendar'),
             icon: Icon(_heatmap ? Icons.calendar_month : Icons.calendar_month_outlined),
             onPressed: () => setState(() => _heatmap = !_heatmap),
           ),
           IconButton(
-            tooltip: 'ফিল্টার',
+            tooltip: tr('ফিল্টার', 'Filter'),
             icon: Badge(
               isLabelVisible: _filter.active,
               label: Text(dg(_filter.count)),
-              child: const Icon(Icons.filter_list),
+              child: Icon(Icons.filter_list),
             ),
             onPressed: () async {
               final f = await showFilterSheet(context, ref, _filter);
@@ -253,26 +274,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     padding: const EdgeInsets.all(8),
                     child: InputChip(
                       label: Text(_filter.range!.label),
-                      onDeleted: () => setState(() => _filter = HistoryFilter(
-                        type: _filter.type,
-                        categories: _filter.categories,
-                        persons: _filter.persons,
-                        minAmount: _filter.minAmount,
-                        maxAmount: _filter.maxAmount,
-                        debtOnly: _filter.debtOnly,
-                      )),
+                      onDeleted: () => setState(
+                        () => _filter = HistoryFilter(
+                          type: _filter.type,
+                          categories: _filter.categories,
+                          persons: _filter.persons,
+                          minAmount: _filter.minAmount,
+                          maxAmount: _filter.maxAmount,
+                          debtOnly: _filter.debtOnly,
+                        ),
+                      ),
                     ),
                   ),
                 if (_heatmap && !usingRange)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: SectionCard(
-                      title: 'কোন দিন কত খরচ',
+                      title: tr('কোন দিন কত খরচ', 'Spending by day'),
                       trailing: _day == null
                           ? null
                           : TextButton(
                               onPressed: () => setState(() => _day = null),
-                              child: Text('${dg(_day!)} তারিখ ✕'),
+                              child: Text(tr('${dg(_day!)} তারিখ ✕', 'Day ${dg(_day!)} ✕')),
                             ),
                       child: CalendarHeatmap(
                         month: month,
@@ -288,23 +311,37 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${dg(items.length)}টি এন্ট্রি',
+                          tr('${dg(items.length)}টি এন্ট্রি', '${dg(items.length)} entries'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: Theme.of(context).colorScheme.outline),
                         ),
                       ),
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * .62),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.sizeOf(context).width * .62,
+                        ),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerRight,
                           child: Row(
                             children: [
-                              Text('জমা ', style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 12)),
+                              Text(
+                                tr('জমা ', 'In '),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  fontSize: 12,
+                                ),
+                              ),
                               MoneyText(inc, type: TxType.income),
                               const SizedBox(width: 12),
-                              Text('খরচ ', style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 12)),
+                              Text(
+                                tr('খরচ ', 'Out '),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  fontSize: 12,
+                                ),
+                              ),
                               MoneyText(exp, type: TxType.expense),
                             ],
                           ),
@@ -321,8 +358,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               hasScrollBody: false,
               child: EmptyState(
                 emoji: q.isNotEmpty || _filter.active ? '🔍' : '📭',
-                title: q.isNotEmpty || _filter.active ? 'কিছু পাওয়া যায়নি' : 'এ মাসে কোনো এন্ট্রি নেই',
-                actionLabel: q.isEmpty && !_filter.active ? 'এন্ট্রি যোগ করুন' : null,
+                title: q.isNotEmpty || _filter.active
+                    ? tr('কিছু পাওয়া যায়নি', 'Nothing found')
+                    : tr('এ মাসে কোনো এন্ট্রি নেই', 'No entries this month'),
+                actionLabel: q.isEmpty && !_filter.active
+                    ? tr('এন্ট্রি যোগ করুন', 'Add an entry')
+                    : null,
                 onAction: () => showEntrySheet(context),
               ),
             )
@@ -387,21 +428,37 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 controller: controller,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
-                  Text('ফিল্টার', style: Theme.of(context).textTheme.titleLarge),
+                  Text(tr('ফিল্টার', 'Filter'), style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 16),
-                  const Text('ধরন'),
+                  Text(tr('ধরন', 'Type')),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
                     children: [
-                      ChoiceChip(label: const Text('সব'), selected: _type == null, onSelected: (_) => setState(() => _type = null)),
-                      ChoiceChip(label: const Text('খরচ'), selected: _type == 0, onSelected: (_) => setState(() => _type = 0)),
-                      ChoiceChip(label: const Text('জমা'), selected: _type == 1, onSelected: (_) => setState(() => _type = 1)),
-                      FilterChip(label: const Text('শুধু ধার'), selected: _debtOnly, onSelected: (v) => setState(() => _debtOnly = v)),
+                      ChoiceChip(
+                        label: Text(tr('সব', 'All')),
+                        selected: _type == null,
+                        onSelected: (_) => setState(() => _type = null),
+                      ),
+                      ChoiceChip(
+                        label: Text(tr('খরচ', 'Expense')),
+                        selected: _type == 0,
+                        onSelected: (_) => setState(() => _type = 0),
+                      ),
+                      ChoiceChip(
+                        label: Text(tr('জমা', 'Income')),
+                        selected: _type == 1,
+                        onSelected: (_) => setState(() => _type = 1),
+                      ),
+                      FilterChip(
+                        label: Text(tr('শুধু ধার', 'Debts only')),
+                        selected: _debtOnly,
+                        onSelected: (v) => setState(() => _debtOnly = v),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('ক্যাটাগরি'),
+                  Text(tr('ক্যাটাগরি', 'Categories')),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
@@ -409,15 +466,21 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     children: [
                       for (final c in cats)
                         FilterChip(
-                          label: Text('${c.emoji} ${c.name}${c.archived ? ' (আর্কাইভ)' : ''}'),
+                          label: Text(
+                            tr(
+                              '${c.emoji} ${c.name}${c.archived ? ' (আর্কাইভ)' : ''}',
+                              '${c.emoji} ${c.name}${c.archived ? ' (archived)' : ''}',
+                            ),
+                          ),
                           selected: _cats.contains(c.id),
-                          onSelected: (v) => setState(() => v ? _cats.add(c.id) : _cats.remove(c.id)),
+                          onSelected: (v) =>
+                              setState(() => v ? _cats.add(c.id) : _cats.remove(c.id)),
                         ),
                     ],
                   ),
                   if (fin.persons.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    const Text('ব্যক্তি'),
+                    Text(tr('ব্যক্তি', 'People')),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
@@ -427,13 +490,14 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           FilterChip(
                             label: Text(p.name),
                             selected: _persons.contains(p.id),
-                            onSelected: (v) => setState(() => v ? _persons.add(p.id) : _persons.remove(p.id)),
+                            onSelected: (v) =>
+                                setState(() => v ? _persons.add(p.id) : _persons.remove(p.id)),
                           ),
                       ],
                     ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('টাকার রেঞ্জ'),
+                  Text(tr('টাকার রেঞ্জ', 'Amount range')),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -441,7 +505,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         child: TextField(
                           controller: _min,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'সর্বনিম্ন ৳'),
+                          decoration: InputDecoration(labelText: tr('সর্বনিম্ন ৳', 'Min ৳')),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -449,20 +513,26 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         child: TextField(
                           controller: _max,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'সর্বোচ্চ ৳'),
+                          decoration: InputDecoration(labelText: tr('সর্বোচ্চ ৳', 'Max ৳')),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('তারিখ'),
+                  Text(tr('তারিখ', 'Date')),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
                     children: [
                       ActionChip(
                         avatar: const Icon(Icons.date_range, size: 18),
-                        label: Text(_range?.label ?? 'তারিখের পরিসর বাছুন (নইলে নির্বাচিত মাস)'),
+                        label: Text(
+                          _range?.label ??
+                              tr(
+                                'তারিখের পরিসর বাছুন (নইলে নির্বাচিত মাস)',
+                                'Pick a date range (otherwise the selected month)',
+                              ),
+                        ),
                         onPressed: () async {
                           final r = await showDateRangePicker(
                             context: context,
@@ -470,15 +540,26 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                             lastDate: DateTime.now().add(const Duration(days: 365)),
                             initialDateRange: _range == null
                                 ? null
-                                : DateTimeRange(start: _range!.start, end: _range!.end.subtract(const Duration(days: 1))),
+                                : DateTimeRange(
+                                    start: _range!.start,
+                                    end: _range!.end.subtract(const Duration(days: 1)),
+                                  ),
                           );
                           if (r != null) {
-                            setState(() => _range = DateRange(dayStart(r.start), dayStart(r.end).add(const Duration(days: 1))));
+                            setState(
+                              () => _range = DateRange(
+                                dayStart(r.start),
+                                dayStart(r.end).add(const Duration(days: 1)),
+                              ),
+                            );
                           }
                         },
                       ),
                       if (_range != null)
-                        ActionChip(label: const Text('বাদ দিন'), onPressed: () => setState(() => _range = null)),
+                        ActionChip(
+                          label: Text(tr('বাদ দিন', 'Clear')),
+                          onPressed: () => setState(() => _range = null),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -494,7 +575,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context, const HistoryFilter()),
-                        child: const Text('সব মুছুন'),
+                        child: Text(tr('সব মুছুন', 'Reset')),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -512,7 +593,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                             debtOnly: _debtOnly,
                           ),
                         ),
-                        child: const Text('প্রয়োগ করুন'),
+                        child: Text(tr('প্রয়োগ করুন', 'Apply')),
                       ),
                     ),
                   ],

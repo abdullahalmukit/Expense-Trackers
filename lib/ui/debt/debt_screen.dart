@@ -10,6 +10,7 @@ import '../entry/entry_sheet.dart';
 import '../widgets/charts.dart';
 import '../widgets/common.dart';
 import 'person_screen.dart';
+import '../../core/i18n.dart';
 
 class DebtScreen extends ConsumerWidget {
   const DebtScreen({super.key});
@@ -30,11 +31,11 @@ class DebtScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ধার'),
+        title: Text(tr('ধার', 'Debt')),
         actions: [
           PopupMenuButton<int>(
             icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'নতুন ধার',
+            tooltip: tr('নতুন ধার', 'New debt'),
             onSelected: (a) => showEntrySheet(context, debtAction: a),
             itemBuilder: (_) => [
               for (final a in const [DebtAction.borrow, DebtAction.lend])
@@ -46,9 +47,12 @@ class DebtScreen extends ConsumerWidget {
       body: debts.isEmpty
           ? EmptyState(
               emoji: '🤝',
-              title: 'কোনো ধারের হিসাব নেই',
-              subtitle: 'এন্ট্রিতে \'ধার\' টাইল বাছলে কার সাথে কত দেনা-পাওনা — সব এখানে দেখাবে।',
-              actionLabel: 'ধার যোগ করুন',
+              title: tr('কোনো ধারের হিসাব নেই', 'No debts yet'),
+              subtitle: tr(
+                'এন্ট্রিতে \'ধার\' টাইল বাছলে কার সাথে কত দেনা-পাওনা — সব এখানে দেখাবে।',
+                'Pick the \'Debt\' tile in an entry and who owes whom will show up here.',
+              ),
+              actionLabel: tr('ধার যোগ করুন', 'Add a debt'),
               onAction: () => showEntrySheet(context, debtAction: DebtAction.borrow),
             )
           : ListView(
@@ -57,30 +61,38 @@ class DebtScreen extends ConsumerWidget {
                 Row(
                   children: [
                     _TotalCard(
-                      label: 'আমি দেব',
+                      label: tr('আমি দেব', 'I owe'),
                       amount: payable,
                       icon: Icons.call_made,
-                      sub: '${dg(active.where((d) => d.payable > 0).length)} জনকে',
+                      sub: tr(
+                        '${dg(active.where((d) => d.payable > 0).length)} জনকে',
+                        'to ${dg(active.where((d) => d.payable > 0).length)} people',
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _TotalCard(
-                      label: 'আমি পাব',
+                      label: tr('আমি পাব', 'Owed to me'),
                       amount: receivable,
                       icon: Icons.call_received,
-                      sub: '${dg(active.where((d) => d.receivable > 0).length)} জনের কাছে',
+                      sub: tr(
+                        '${dg(active.where((d) => d.receivable > 0).length)} জনের কাছে',
+                        'from ${dg(active.where((d) => d.receivable > 0).length)} people',
+                      ),
                     ),
                   ],
                 ),
                 if (active.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   SectionCard(
-                    title: 'কার কাছে কত বাকি',
+                    title: tr('কার কাছে কত বাকি', 'Outstanding by person'),
                     child: HBarList(
                       onTap: open,
                       items: [
                         for (final d in active) ...[
-                          if (d.payable > 0) HBarItem(d.person.id, d.person.name, d.payable, AppColors.expense),
-                          if (d.receivable > 0) HBarItem(d.person.id, d.person.name, d.receivable, AppColors.income),
+                          if (d.payable > 0)
+                            HBarItem(d.person.id, d.person.name, d.payable, AppColors.expense),
+                          if (d.receivable > 0)
+                            HBarItem(d.person.id, d.person.name, d.receivable, AppColors.income),
                         ],
                       ],
                     ),
@@ -91,9 +103,9 @@ class DebtScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         const ColorDot(AppColors.expense),
-                        const Text(' আমি দেব   ', style: TextStyle(fontSize: 11)),
+                        Text(tr(' আমি দেব   ', ' I owe   '), style: TextStyle(fontSize: 11)),
                         const ColorDot(AppColors.income),
-                        const Text(' আমি পাব', style: TextStyle(fontSize: 11)),
+                        Text(tr(' আমি পাব', ' Owed to me'), style: TextStyle(fontSize: 11)),
                       ],
                     ),
                   ),
@@ -101,18 +113,26 @@ class DebtScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (active.isNotEmpty)
                   SectionCard(
-                    title: 'চলমান',
+                    title: tr('চলমান', 'Active'),
                     padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-                    child: Column(children: [for (final d in active) _PersonTile(d: d, onTap: () => open(d.person.id))]),
+                    child: Column(
+                      children: [
+                        for (final d in active) _PersonTile(d: d, onTap: () => open(d.person.id)),
+                      ],
+                    ),
                   ),
                 if (settled.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Card(
                     child: ExpansionTile(
                       shape: const Border(),
-                      title: Text('মীমাংসিত (${dg(settled.length)})'),
+                      title: Text(
+                        tr('মীমাংসিত (${dg(settled.length)})', 'Settled (${dg(settled.length)})'),
+                      ),
                       leading: const Icon(Icons.verified_outlined, color: AppColors.income),
-                      children: [for (final d in settled) _PersonTile(d: d, onTap: () => open(d.person.id))],
+                      children: [
+                        for (final d in settled) _PersonTile(d: d, onTap: () => open(d.person.id)),
+                      ],
                     ),
                   ),
                 ],
@@ -123,7 +143,12 @@ class DebtScreen extends ConsumerWidget {
 }
 
 class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.label, required this.amount, required this.icon, required this.sub});
+  const _TotalCard({
+    required this.label,
+    required this.amount,
+    required this.icon,
+    required this.sub,
+  });
   final String label;
   final int amount;
   final IconData icon;
@@ -145,14 +170,25 @@ class _TotalCard extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: AppColors.debt),
               const SizedBox(width: 6),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           FittedBox(
             child: Text(
               money(amount),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.debt),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: AppColors.debt,
+              ),
             ),
           ),
           Text(sub, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline)),
@@ -170,8 +206,22 @@ class _PersonTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = <String>[];
-    if (d.borrowed > 0) lines.add('নিয়েছি ${money(d.borrowed)} · শোধ ${money(d.repaid)}');
-    if (d.lent > 0) lines.add('দিয়েছি ${money(d.lent)} · ফেরত ${money(d.collected)}');
+    if (d.borrowed > 0) {
+      lines.add(
+        tr(
+          'নিয়েছি ${money(d.borrowed)} · শোধ ${money(d.repaid)}',
+          'Borrowed ${money(d.borrowed)} · repaid ${money(d.repaid)}',
+        ),
+      );
+    }
+    if (d.lent > 0) {
+      lines.add(
+        tr(
+          'দিয়েছি ${money(d.lent)} · ফেরত ${money(d.collected)}',
+          'Lent ${money(d.lent)} · got back ${money(d.collected)}',
+        ),
+      );
+    }
     if (d.nextDue != null) lines.add('⏰ ${dayLabel(d.nextDue!)}');
     return ListTile(
       onTap: onTap,
@@ -192,9 +242,15 @@ class _PersonTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (d.payable > 0)
-                  Text('দেব ${money(d.payable)}', style: const TextStyle(color: AppColors.expense, fontWeight: FontWeight.w800)),
+                  Text(
+                    tr('দেব ${money(d.payable)}', 'Owe ${money(d.payable)}'),
+                    style: const TextStyle(color: AppColors.expense, fontWeight: FontWeight.w800),
+                  ),
                 if (d.receivable > 0)
-                  Text('পাব ${money(d.receivable)}', style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.w800)),
+                  Text(
+                    tr('পাব ${money(d.receivable)}', 'Get ${money(d.receivable)}'),
+                    style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.w800),
+                  ),
               ],
             ),
     );

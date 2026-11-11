@@ -1,3 +1,4 @@
+import 'i18n.dart';
 import 'money.dart';
 
 const bnMonths = [
@@ -30,16 +31,30 @@ const bnMonthsShort = [
   'ডিসে',
 ];
 
-/// DateTime.weekday: 1 = সোমবার … 7 = রবিবার
-const bnWeekdays = [
-  'সোমবার',
-  'মঙ্গলবার',
-  'বুধবার',
-  'বৃহস্পতিবার',
-  'শুক্রবার',
-  'শনিবার',
-  'রবিবার',
+const enMonths = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
+
+const enWeekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/// বর্তমান ভাষায় মাসের নাম (1–12)
+String monthName(int m) => Lang.en ? enMonths[m - 1] : bnMonths[m - 1];
+String monthNameShort(int m) => Lang.en ? enMonths[m - 1].substring(0, 3) : bnMonthsShort[m - 1];
+String weekdayName(int w) => Lang.en ? enWeekdays[w - 1] : bnWeekdays[w - 1];
+
+/// DateTime.weekday: 1 = সোমবার … 7 = রবিবার
+const bnWeekdays = ['সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার', 'রবিবার'];
 
 const bnWeekdaysShort = ['সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি', 'রবি'];
 
@@ -48,38 +63,34 @@ DateTime nextMonth(DateTime d) => DateTime(d.year, d.month + 1);
 DateTime prevMonth(DateTime d) => DateTime(d.year, d.month - 1);
 DateTime dayStart(DateTime d) => DateTime(d.year, d.month, d.day);
 int daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
-bool sameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
-bool sameMonth(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month;
+bool sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+bool sameMonth(DateTime a, DateTime b) => a.year == b.year && a.month == b.month;
 
-String monthKey(DateTime d) =>
-    '${d.year}-${d.month.toString().padLeft(2, '0')}';
+String monthKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}';
 DateTime parseMonthKey(String k) {
   final p = k.split('-');
   return DateTime(int.parse(p[0]), int.parse(p[1]));
 }
 
 /// "নভেম্বর ২০২৬"
-String monthLabel(DateTime d) => '${bnMonths[d.month - 1]} ${dg(d.year)}';
-String monthShortLabel(DateTime d) =>
-    '${bnMonthsShort[d.month - 1]} ${dg(d.year % 100)}';
+String monthLabel(DateTime d) => '${monthName(d.month)} ${dg(d.year)}';
+String monthShortLabel(DateTime d) => '${monthNameShort(d.month)} ${dg(d.year % 100)}';
 
 /// "১০ নভেম্বর" (বছর আলাদা হলে বছরও)
 String dayLabel(DateTime d, {bool withYear = false}) {
   final now = DateTime.now();
   final y = withYear || d.year != now.year ? ' ${dg(d.year)}' : '';
-  return '${dg(d.day)} ${bnMonths[d.month - 1]}$y';
+  return '${dg(d.day)} ${monthName(d.month)}$y';
 }
 
 /// "আজ", "গতকাল", অথবা "সোমবার, ১০ নভেম্বর"
 String relativeDayLabel(DateTime d) {
   final now = DateTime.now();
-  if (sameDay(d, now)) return 'আজ · ${dayLabel(d)}';
+  if (sameDay(d, now)) return '${tr('আজ', 'Today')} · ${dayLabel(d)}';
   if (sameDay(d, now.subtract(const Duration(days: 1)))) {
-    return 'গতকাল · ${dayLabel(d)}';
+    return '${tr('গতকাল', 'Yesterday')} · ${dayLabel(d)}';
   }
-  return '${bnWeekdays[d.weekday - 1]}, ${dayLabel(d)}';
+  return '${weekdayName(d.weekday)}, ${dayLabel(d)}';
 }
 
 String _period(int h) {
@@ -91,11 +102,13 @@ String _period(int h) {
   return 'রাত';
 }
 
-/// "রাত ৯:৩০"
+/// "রাত ৯:৩০" / "9:30 PM"
 String timeLabel(DateTime d) {
   var h = d.hour % 12;
   if (h == 0) h = 12;
-  return '${_period(d.hour)} ${dg(h)}:${dg(d.minute.toString().padLeft(2, '0'))}';
+  final mm = dg(d.minute.toString().padLeft(2, '0'));
+  if (Lang.en) return '${dg(h)}:$mm ${d.hour < 12 ? 'AM' : 'PM'}';
+  return '${_period(d.hour)} ${dg(h)}:$mm';
 }
 
 String dateTimeLabel(DateTime d) => '${dayLabel(d)}, ${timeLabel(d)}';
@@ -116,17 +129,13 @@ class DateRange {
   bool contains(DateTime d) => !d.isBefore(start) && d.isBefore(end);
   int get days => end.difference(start).inDays;
 
-  factory DateRange.month(DateTime m) =>
-      DateRange(monthStart(m), nextMonth(monthStart(m)));
+  factory DateRange.month(DateTime m) => DateRange(monthStart(m), nextMonth(monthStart(m)));
 
   /// শেষ n মাস (এই মাস সহ)
-  factory DateRange.lastMonths(DateTime m, int n) => DateRange(
-    DateTime(m.year, m.month - (n - 1)),
-    nextMonth(monthStart(m)),
-  );
+  factory DateRange.lastMonths(DateTime m, int n) =>
+      DateRange(DateTime(m.year, m.month - (n - 1)), nextMonth(monthStart(m)));
 
-  factory DateRange.year(DateTime m) =>
-      DateRange(DateTime(m.year), DateTime(m.year + 1));
+  factory DateRange.year(DateTime m) => DateRange(DateTime(m.year), DateTime(m.year + 1));
 
   /// সব মাসের তালিকা (প্রতিটির ১ তারিখ)
   List<DateTime> get months {

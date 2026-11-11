@@ -78,9 +78,30 @@ void main() {
       final debtOut = await repo.ensureDebtCategory(0);
       final rafi = await repo.findOrCreatePerson('রাফি');
       final sakib = await repo.findOrCreatePerson('সাকিব');
-      await repo.saveTxn(type: 1, amount: 100000, categoryId: debtIn, debtAction: DebtAction.borrow, personId: rafi, occurredAt: DateTime(2026, 11, 1));
-      await repo.saveTxn(type: 0, amount: 70000, categoryId: debtOut, debtAction: DebtAction.repay, personId: rafi, occurredAt: DateTime(2026, 11, 5));
-      await repo.saveTxn(type: 0, amount: 20000, categoryId: debtOut, debtAction: DebtAction.lend, personId: sakib, occurredAt: DateTime(2026, 11, 3));
+      await repo.saveTxn(
+        type: 1,
+        amount: 100000,
+        categoryId: debtIn,
+        debtAction: DebtAction.borrow,
+        personId: rafi,
+        occurredAt: DateTime(2026, 11, 1),
+      );
+      await repo.saveTxn(
+        type: 0,
+        amount: 70000,
+        categoryId: debtOut,
+        debtAction: DebtAction.repay,
+        personId: rafi,
+        occurredAt: DateTime(2026, 11, 5),
+      );
+      await repo.saveTxn(
+        type: 0,
+        amount: 20000,
+        categoryId: debtOut,
+        debtAction: DebtAction.lend,
+        personId: sakib,
+        occurredAt: DateTime(2026, 11, 3),
+      );
     });
     await tester.pumpWidget(host(db, const DebtScreen()));
     await settle(tester);
@@ -99,7 +120,13 @@ void main() {
     final fin = await tester.runAsync(() async {
       await repo.seedIfNeeded();
       final cats = await db.select(db.categories).get();
-      await repo.saveTxn(type: 0, amount: 25000, categoryId: cats.first.id, occurredAt: DateTime(2026, 11, 2), note: 'বাজার');
+      await repo.saveTxn(
+        type: 0,
+        amount: 25000,
+        categoryId: cats.first.id,
+        occurredAt: DateTime(2026, 11, 2),
+        note: 'বাজার',
+      );
       return FinanceData(
         txns: await db.select(db.transactions).get(),
         cats: cats,
@@ -110,10 +137,13 @@ void main() {
       );
     });
     final ui.Image? img = await tester.runAsync(
-      () => renderToImage(const Center(child: Text('টাকার খাতা')), PdfReport.pageSize, pixelRatio: 1),
+      () =>
+          renderToImage(const Center(child: Text('টাকার খাতা')), PdfReport.pageSize, pixelRatio: 1),
     );
     expect(img!.width, 595);
-    final pdf = await tester.runAsync(() => PdfReport.build(fin!, DateRange.month(DateTime(2026, 11))));
+    final pdf = await tester.runAsync(
+      () => PdfReport.build(fin!, DateRange.month(DateTime(2026, 11))),
+    );
     expect(String.fromCharCodes(pdf!.sublist(0, 4)), '%PDF');
   });
 }

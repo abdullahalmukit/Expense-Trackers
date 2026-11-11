@@ -14,9 +14,7 @@ final repoProvider = Provider<Repo>((ref) => Repo(ref.watch(dbProvider)));
 final categoriesProvider = StreamProvider<List<Cat>>(
   (ref) => ref.watch(repoProvider).watchCategories(),
 );
-final txnsProvider = StreamProvider<List<Txn>>(
-  (ref) => ref.watch(repoProvider).watchTxns(),
-);
+final txnsProvider = StreamProvider<List<Txn>>((ref) => ref.watch(repoProvider).watchTxns());
 final personsProvider = StreamProvider<List<Person>>(
   (ref) => ref.watch(repoProvider).watchPersons(),
 );
@@ -29,9 +27,7 @@ final transfersProvider = StreamProvider<List<Transfer>>(
 final budgetsProvider = StreamProvider<List<Budget>>(
   (ref) => ref.watch(repoProvider).watchBudgets(),
 );
-final goalsProvider = StreamProvider<List<Goal>>(
-  (ref) => ref.watch(repoProvider).watchGoals(),
-);
+final goalsProvider = StreamProvider<List<Goal>>((ref) => ref.watch(repoProvider).watchGoals());
 final recurringsProvider = StreamProvider<List<Recurring>>(
   (ref) => ref.watch(repoProvider).watchRecurrings(),
 );
@@ -75,9 +71,7 @@ final selectedMonthProvider = NotifierProvider<ValueNotifierX<DateTime>, DateTim
   () => ValueNotifierX(monthStart(DateTime.now())),
 );
 
-final tabIndexProvider = NotifierProvider<ValueNotifierX<int>, int>(
-  () => ValueNotifierX(0),
-);
+final tabIndexProvider = NotifierProvider<ValueNotifierX<int>, int>(() => ValueNotifierX(0));
 
 class AppSettings {
   final Map<String, String> raw;
@@ -88,7 +82,13 @@ class AppSettings {
     'dark' => ThemeMode.dark,
     _ => ThemeMode.system,
   };
-  bool get bengaliDigits => raw['digits'] != 'en';
+
+  /// ভাষা বাছাই করা হয়েছে কিনা (প্রথমবার খুললে জিজ্ঞেস করা হয়)
+  bool get languageChosen => raw['lang'] != null;
+  bool get english => raw['lang'] == 'en';
+
+  /// আলাদা করে সেট না করলে সংখ্যা ভাষার সাথে মিলিয়ে
+  bool get bengaliDigits => raw['digits'] == null ? !english : raw['digits'] != 'en';
   bool get lockEnabled => raw['lock_pin'] != null;
   bool get lockBiometric => raw['lock_bio'] == '1';
   bool get reminderEnabled => raw['reminder'] == '1';
@@ -108,6 +108,4 @@ final appSettingsProvider = Provider<AppSettings>(
   (ref) => AppSettings(ref.watch(settingsProvider).value ?? const {}),
 );
 
-final effectsProvider = Provider<Effects>(
-  (ref) => Effects(ref.watch(repoProvider)),
-);
+final effectsProvider = Provider<Effects>((ref) => Effects(ref.watch(repoProvider)));

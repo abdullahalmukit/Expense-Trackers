@@ -21,14 +21,57 @@ Txn tx(String id, int type, int taka, int cat, DateTime at, {int? debt, int? per
 
 void main() {
   final cats = [
-    const Cat(id: 1, name: 'খাবার', emoji: '🍛', color: 0, kind: 0, sortOrder: 0, archived: false, isDebt: false),
-    const Cat(id: 2, name: 'টিউশন', emoji: '👨‍🏫', color: 0, kind: 1, sortOrder: 0, archived: false, isDebt: false),
-    const Cat(id: 3, name: 'ধার', emoji: '🤝', color: 0, kind: 0, sortOrder: 99, archived: false, isDebt: true),
-    const Cat(id: 4, name: 'ধার', emoji: '🤝', color: 0, kind: 1, sortOrder: 99, archived: false, isDebt: true),
+    const Cat(
+      id: 1,
+      name: 'খাবার',
+      emoji: '🍛',
+      color: 0,
+      kind: 0,
+      sortOrder: 0,
+      archived: false,
+      isDebt: false,
+    ),
+    const Cat(
+      id: 2,
+      name: 'টিউশন',
+      emoji: '👨‍🏫',
+      color: 0,
+      kind: 1,
+      sortOrder: 0,
+      archived: false,
+      isDebt: false,
+    ),
+    const Cat(
+      id: 3,
+      name: 'ধার',
+      emoji: '🤝',
+      color: 0,
+      kind: 0,
+      sortOrder: 99,
+      archived: false,
+      isDebt: true,
+    ),
+    const Cat(
+      id: 4,
+      name: 'ধার',
+      emoji: '🤝',
+      color: 0,
+      kind: 1,
+      sortOrder: 99,
+      archived: false,
+      isDebt: true,
+    ),
   ];
   const rafi = Person(id: 1, name: 'রাফি', phone: '', note: '');
   const sakib = Person(id: 2, name: 'সাকিব', phone: '', note: '');
-  const wallet = Wallet(id: 1, name: 'ক্যাশ', emoji: '💵', openingBalance: 100000, sortOrder: 0, archived: false);
+  const wallet = Wallet(
+    id: 1,
+    name: 'ক্যাশ',
+    emoji: '💵',
+    openingBalance: 100000,
+    sortOrder: 0,
+    archived: false,
+  );
 
   FinanceData make(List<Txn> txns, {List<Budget> budgets = const []}) => FinanceData(
     txns: txns,
@@ -104,7 +147,13 @@ void main() {
   });
 
   test('ট্যাগ', () {
-    final t = tx('t', 0, 100, 1, DateTime(2026, 11, 2)).copyWith(note: 'বাস ভাড়া #ট্যুর #কক্সবাজার');
+    final t = tx(
+      't',
+      0,
+      100,
+      1,
+      DateTime(2026, 11, 2),
+    ).copyWith(note: 'বাস ভাড়া #ট্যুর #কক্সবাজার');
     final fin = make([t]);
     expect(tagsOf(t), {'#ট্যুর', '#কক্সবাজার'});
     expect(fin.tagTotals()['#ট্যুর'], 10000);

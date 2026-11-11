@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/dates.dart';
+import '../core/i18n.dart';
 import '../domain/finance.dart';
 import 'database.dart';
 import 'defaults.dart';
@@ -16,54 +17,47 @@ class Repo {
 
   // ---------------- streams ----------------
 
-  Stream<List<Cat>> watchCategories() => (db.select(db.categories)
-        ..orderBy([
-          (c) => OrderingTerm.asc(c.kind),
-          (c) => OrderingTerm.asc(c.sortOrder),
-          (c) => OrderingTerm.asc(c.id),
-        ]))
-      .watch();
+  Stream<List<Cat>> watchCategories() =>
+      (db.select(db.categories)..orderBy([
+            (c) => OrderingTerm.asc(c.kind),
+            (c) => OrderingTerm.asc(c.sortOrder),
+            (c) => OrderingTerm.asc(c.id),
+          ]))
+          .watch();
 
-  Stream<List<Txn>> watchTxns() => (db.select(db.transactions)
-        ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]))
-      .watch();
+  Stream<List<Txn>> watchTxns() =>
+      (db.select(db.transactions)..orderBy([(t) => OrderingTerm.desc(t.occurredAt)])).watch();
 
   Stream<List<Person>> watchPersons() =>
       (db.select(db.persons)..orderBy([(p) => OrderingTerm.asc(p.name)])).watch();
 
-  Stream<List<Wallet>> watchWallets() => (db.select(db.wallets)
-        ..orderBy([
-          (w) => OrderingTerm.asc(w.sortOrder),
-          (w) => OrderingTerm.asc(w.id),
-        ]))
-      .watch();
+  Stream<List<Wallet>> watchWallets() => (db.select(
+    db.wallets,
+  )..orderBy([(w) => OrderingTerm.asc(w.sortOrder), (w) => OrderingTerm.asc(w.id)])).watch();
 
-  Stream<List<Transfer>> watchTransfers() => (db.select(db.transfers)
-        ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]))
-      .watch();
+  Stream<List<Transfer>> watchTransfers() =>
+      (db.select(db.transfers)..orderBy([(t) => OrderingTerm.desc(t.occurredAt)])).watch();
 
   Stream<List<Budget>> watchBudgets() => db.select(db.budgets).watch();
   Stream<List<Goal>> watchGoals() => db.select(db.goals).watch();
   Stream<List<Recurring>> watchRecurrings() => db.select(db.recurrings).watch();
 
-  Stream<Map<String, String>> watchSettings() => db
-      .select(db.settings)
-      .watch()
-      .map((rows) => {for (final r in rows) r.key: r.value});
+  Stream<Map<String, String>> watchSettings() =>
+      db.select(db.settings).watch().map((rows) => {for (final r in rows) r.key: r.value});
 
   // ---------------- seed ----------------
 
-  Future<void> seedIfNeeded() async {
+  Future<void> seedIfNeeded({bool en = false}) async {
     final seeded = await getSetting('seeded');
     if (seeded == '1') return;
     await db.transaction(() async {
       final cats = await db.select(db.categories).get();
       if (cats.isEmpty) {
-        await db.batch((b) => b.insertAll(db.categories, defaultCategories));
+        await db.batch((b) => b.insertAll(db.categories, defaultCategories(en: en)));
       }
       final ws = await db.select(db.wallets).get();
       if (ws.isEmpty) {
-        await db.batch((b) => b.insertAll(db.wallets, defaultWallets));
+        await db.batch((b) => b.insertAll(db.wallets, defaultWallets(en: en)));
       }
       await setSetting('seeded', '1');
     });
@@ -71,41 +65,69 @@ class Repo {
 
   /// প্রতিটি ধরনের জন্য সিস্টেমের 'ধার' ক্যাটাগরি থাকা নিশ্চিত করে।
   Future<int> ensureDebtCategory(int kind) async {
-    final existing =
-        await (db.select(db.categories)
-              ..where((c) => c.isDebt.equals(true) & c.kind.equals(kind)))
-            .get();
+    final existing = await (db.select(
+      db.categories,
+    )..where((c) => c.isDebt.equals(true) & c.kind.equals(kind))).get();
     if (existing.isNotEmpty) {
       final c = existing.first;
       if (c.archived) {
-        await (db.update(db.categories)..where((x) => x.id.equals(c.id)))
-            .write(const CategoriesCompanion(archived: Value(false)));
+        await (db.update(db.categories)..where((x) => x.id.equals(c.id))).write(
+          const CategoriesCompanion(archived: Value(false)),
+        );
       }
       return c.id;
     }
-    return db.into(db.categories).insert(
-      CategoriesCompanion.insert(
-        name: 'ধার',
-        emoji: '🤝',
-        color: 0xFF7E57C2,
-        kind: kind,
-        sortOrder: const Value(99),
-        isDebt: const Value(true),
-      ),
-    );
+    return db
+        .into(db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            name: tr('ধার', 'Debt'),
+            emoji: '🤝',
+            color: 0xFF7E57C2,
+            kind: kind,
+            sortOrder: const Value(99),
+            isDebt: const Value(true),
+          ),
+        );
+  }
+
+  /// ভাষা বদলানো: সেটিং সেভ, আর যেসব ডিফল্ট ক্যাটাগরি/ওয়ালেটের নাম
+  /// ব্যবহারকারী বদলাননি সেগুলো নতুন ভাষায় বদলানো।
+  Future<void> setLanguage(String code) async {
+    final en = code == 'en';
+    await db.transaction(() async {
+      await setSetting('lang', code);
+      // সংখ্যার ধরন ভাষার সাথে মিলিয়ে (পরে সেটিংসে আলাদা করে বদলানো যায়)
+      await removeSetting('digits');
+      String? swap(String name) {
+        for (final (bn, enName) in defaultNamePairs) {
+          if (en && name == bn) return enName;
+          if (!en && name == enName) return bn;
+        }
+        return null;
+      }
+
+      for (final c in await db.select(db.categories).get()) {
+        final n = swap(c.name);
+        if (n != null) await updateCategory(c.copyWith(name: n));
+      }
+      for (final w in await db.select(db.wallets).get()) {
+        final n = swap(w.name);
+        if (n != null) await updateWallet(w.copyWith(name: n));
+      }
+    });
+    await seedIfNeeded(en: en);
   }
 
   // ---------------- settings ----------------
 
   Future<String?> getSetting(String key) async {
-    final r = await (db.select(db.settings)..where((s) => s.key.equals(key)))
-        .getSingleOrNull();
+    final r = await (db.select(db.settings)..where((s) => s.key.equals(key))).getSingleOrNull();
     return r?.value;
   }
 
-  Future<void> setSetting(String key, String value) => db
-      .into(db.settings)
-      .insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
+  Future<void> setSetting(String key, String value) =>
+      db.into(db.settings).insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
 
   Future<void> removeSetting(String key) =>
       (db.delete(db.settings)..where((s) => s.key.equals(key))).go();
@@ -129,8 +151,7 @@ class Repo {
     final now = DateTime.now();
     final existing = id == null
         ? null
-        : await (db.select(db.transactions)..where((t) => t.id.equals(id)))
-              .getSingleOrNull();
+        : await (db.select(db.transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
     final row = Txn(
       id: id ?? newId(),
       type: type,
@@ -151,15 +172,13 @@ class Repo {
     return row;
   }
 
-  Future<void> insertTxn(Txn t) =>
-      db.into(db.transactions).insertOnConflictUpdate(t);
+  Future<void> insertTxn(Txn t) => db.into(db.transactions).insertOnConflictUpdate(t);
 
   Future<void> deleteTxn(String id) =>
       (db.delete(db.transactions)..where((t) => t.id.equals(id))).go();
 
   Future<Txn?> getTxn(String id) =>
-      (db.select(db.transactions)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      (db.select(db.transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<List<Txn>> allTxns() => db.select(db.transactions).get();
 
@@ -177,15 +196,17 @@ class Repo {
               ..where(db.categories.kind.equals(kind) & db.categories.isDebt.equals(false)))
             .map((r) => r.read(db.categories.sortOrder.max()))
             .getSingleOrNull();
-    return db.into(db.categories).insert(
-      CategoriesCompanion.insert(
-        name: name.trim(),
-        emoji: emoji,
-        color: color,
-        kind: kind,
-        sortOrder: Value((maxOrder ?? -1) + 1),
-      ),
-    );
+    return db
+        .into(db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            name: name.trim(),
+            emoji: emoji,
+            color: color,
+            kind: kind,
+            sortOrder: Value((maxOrder ?? -1) + 1),
+          ),
+        );
   }
 
   Future<void> updateCategory(Cat c) => db.update(db.categories).replace(c);
@@ -214,22 +235,17 @@ class Repo {
   Future<void> deleteCategory(int id, {int? moveTo}) async {
     await db.transaction(() async {
       if (moveTo != null) {
-        final target = await (db.select(db.categories)
-              ..where((c) => c.id.equals(moveTo)))
-            .getSingle();
-        await (db.update(db.transactions)..where((t) => t.categoryId.equals(id)))
-            .write(TransactionsCompanion(
-              categoryId: Value(moveTo),
-              type: Value(target.kind),
-            ));
+        final target = await (db.select(
+          db.categories,
+        )..where((c) => c.id.equals(moveTo))).getSingle();
+        await (db.update(db.transactions)..where((t) => t.categoryId.equals(id))).write(
+          TransactionsCompanion(categoryId: Value(moveTo), type: Value(target.kind)),
+        );
         // সাধারণ ক্যাটাগরিতে সরালে ধারের তথ্য বাদ
         if (!target.isDebt) {
-          await (db.update(db.transactions)
-                ..where((t) => t.categoryId.equals(moveTo)))
-              .write(const TransactionsCompanion(
-                debtAction: Value(null),
-                personId: Value(null),
-              ));
+          await (db.update(db.transactions)..where((t) => t.categoryId.equals(moveTo))).write(
+            const TransactionsCompanion(debtAction: Value(null), personId: Value(null)),
+          );
         }
       }
       await (db.delete(db.budgets)..where((b) => b.categoryId.equals(id))).go();
@@ -237,17 +253,17 @@ class Repo {
     });
   }
 
-  Future<void> setCategoryArchived(int id, bool archived) =>
-      (db.update(db.categories)..where((c) => c.id.equals(id)))
-          .write(CategoriesCompanion(archived: Value(archived)));
+  Future<void> setCategoryArchived(int id, bool archived) => (db.update(
+    db.categories,
+  )..where((c) => c.id.equals(id))).write(CategoriesCompanion(archived: Value(archived)));
 
   // ---------------- persons ----------------
 
   Future<int> findOrCreatePerson(String name) async {
     final n = name.trim();
-    final existing = await (db.select(db.persons)
-          ..where((p) => p.name.lower().equals(n.toLowerCase())))
-        .get();
+    final existing = await (db.select(
+      db.persons,
+    )..where((p) => p.name.lower().equals(n.toLowerCase()))).get();
     if (existing.isNotEmpty) return existing.first.id;
     return db.into(db.persons).insert(PersonsCompanion.insert(name: n));
   }
@@ -264,46 +280,43 @@ class Repo {
         0;
   }
 
-  Future<void> deletePerson(int id) =>
-      (db.delete(db.persons)..where((p) => p.id.equals(id))).go();
+  Future<void> deletePerson(int id) => (db.delete(db.persons)..where((p) => p.id.equals(id))).go();
 
   /// একই মানুষ দুই নামে থাকলে একত্র করা
   Future<void> mergePerson(int from, int into) async {
     await db.transaction(() async {
-      await (db.update(db.transactions)..where((t) => t.personId.equals(from)))
-          .write(TransactionsCompanion(personId: Value(into)));
+      await (db.update(
+        db.transactions,
+      )..where((t) => t.personId.equals(from))).write(TransactionsCompanion(personId: Value(into)));
       await deletePerson(from);
     });
   }
 
   // ---------------- wallets & transfers ----------------
 
-  Future<int> addWallet(String name, String emoji, int opening) =>
-      db.into(db.wallets).insert(
-        WalletsCompanion.insert(
-          name: name.trim(),
-          emoji: emoji,
-          openingBalance: Value(opening),
-        ),
+  Future<int> addWallet(String name, String emoji, int opening) => db
+      .into(db.wallets)
+      .insert(
+        WalletsCompanion.insert(name: name.trim(), emoji: emoji, openingBalance: Value(opening)),
       );
 
   Future<void> updateWallet(Wallet w) => db.update(db.wallets).replace(w);
 
   Future<int> countWalletUse(int id) async {
     final c = db.transactions.id.count();
-    final n = await (db.selectOnly(db.transactions)
-          ..addColumns([c])
-          ..where(db.transactions.walletId.equals(id)))
-        .map((r) => r.read(c))
-        .getSingle();
-    final tr = await (db.select(db.transfers)
-          ..where((t) => t.fromWalletId.equals(id) | t.toWalletId.equals(id)))
-        .get();
+    final n =
+        await (db.selectOnly(db.transactions)
+              ..addColumns([c])
+              ..where(db.transactions.walletId.equals(id)))
+            .map((r) => r.read(c))
+            .getSingle();
+    final tr = await (db.select(
+      db.transfers,
+    )..where((t) => t.fromWalletId.equals(id) | t.toWalletId.equals(id))).get();
     return (n ?? 0) + tr.length;
   }
 
-  Future<void> deleteWallet(int id) =>
-      (db.delete(db.wallets)..where((w) => w.id.equals(id))).go();
+  Future<void> deleteWallet(int id) => (db.delete(db.wallets)..where((w) => w.id.equals(id))).go();
 
   Future<void> saveTransfer({
     String? id,
@@ -335,24 +348,20 @@ class Repo {
   Future<void> setBudget(DateTime month, int categoryId, int limit) async {
     final key = monthKey(month);
     await db.transaction(() async {
-      await (db.delete(db.budgets)
-            ..where((b) => b.month.equals(key) & b.categoryId.equals(categoryId)))
-          .go();
-      await db.into(db.budgets).insert(
-        BudgetsCompanion.insert(
-          month: key,
-          categoryId: categoryId,
-          limitAmount: limit,
-        ),
-      );
+      await (db.delete(
+        db.budgets,
+      )..where((b) => b.month.equals(key) & b.categoryId.equals(categoryId))).go();
+      await db
+          .into(db.budgets)
+          .insert(BudgetsCompanion.insert(month: key, categoryId: categoryId, limitAmount: limit));
     });
   }
 
   // ---------------- goals ----------------
 
-  Future<int> addGoal(String name, String emoji, int color, int target,
-          DateTime? deadline) =>
-      db.into(db.goals).insert(
+  Future<int> addGoal(String name, String emoji, int color, int target, DateTime? deadline) => db
+      .into(db.goals)
+      .insert(
         GoalsCompanion.insert(
           name: name.trim(),
           emoji: emoji,
@@ -364,8 +373,7 @@ class Repo {
       );
 
   Future<void> updateGoal(Goal g) => db.update(db.goals).replace(g);
-  Future<void> deleteGoal(int id) =>
-      (db.delete(db.goals)..where((g) => g.id.equals(id))).go();
+  Future<void> deleteGoal(int id) => (db.delete(db.goals)..where((g) => g.id.equals(id))).go();
 
   // ---------------- recurring ----------------
 
@@ -379,9 +387,7 @@ class Repo {
   Future<List<Recurring>> processRecurring({DateTime? now}) async {
     now ??= DateTime.now();
     final due = <Recurring>[];
-    final list = await (db.select(db.recurrings)
-          ..where((r) => r.active.equals(true)))
-        .get();
+    final list = await (db.select(db.recurrings)..where((r) => r.active.equals(true))).get();
     for (final r in list) {
       var next = r.nextDate;
       var guard = 0;
@@ -394,7 +400,7 @@ class Repo {
             walletId: r.walletId,
             occurredAt: next,
             note: r.note.isEmpty ? r.title : r.note,
-            purpose: 'রিকারিং',
+            purpose: tr('রিকারিং', 'Recurring'),
           );
         } else {
           due.add(r);
@@ -403,8 +409,9 @@ class Repo {
         if (!r.autoAdd) break;
       }
       if (r.autoAdd && next != r.nextDate) {
-        await (db.update(db.recurrings)..where((x) => x.id.equals(r.id)))
-            .write(RecurringsCompanion(nextDate: Value(next)));
+        await (db.update(
+          db.recurrings,
+        )..where((x) => x.id.equals(r.id))).write(RecurringsCompanion(nextDate: Value(next)));
       }
     }
     return due;

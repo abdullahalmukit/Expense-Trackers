@@ -11,6 +11,7 @@ import 'entry/entry_sheet.dart';
 import 'history/history_screen.dart';
 import 'home/home_screen.dart';
 import 'stats/stats_screen.dart';
+import '../core/i18n.dart';
 
 /// নিচে ট্যাব; মাঝের বড় + বাটন যেকোনো স্ক্রিন থেকে এন্ট্রি খোলে।
 class Shell extends ConsumerStatefulWidget {
@@ -86,7 +87,10 @@ class _ShellState extends ConsumerState<Shell> {
                   color: sel ? scheme.secondaryContainer : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(sel ? active : icon, color: sel ? scheme.onSecondaryContainer : scheme.onSurfaceVariant),
+                child: Icon(
+                  sel ? active : icon,
+                  color: sel ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -116,7 +120,7 @@ class _ShellState extends ConsumerState<Shell> {
         floatingActionButton: FloatingActionButton.large(
           heroTag: 'add',
           shape: const CircleBorder(),
-          tooltip: 'নতুন এন্ট্রি',
+          tooltip: tr('নতুন এন্ট্রি', 'New entry'),
           onPressed: () => showEntrySheet(context),
           child: const Icon(Icons.add, size: 40),
         ),
@@ -127,11 +131,11 @@ class _ShellState extends ConsumerState<Shell> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
-              item(0, Icons.home_outlined, Icons.home, 'হোম'),
-              item(1, Icons.receipt_long_outlined, Icons.receipt_long, 'হিস্টোরি'),
+              item(0, Icons.home_outlined, Icons.home, tr('হোম', 'Home')),
+              item(1, Icons.receipt_long_outlined, Icons.receipt_long, tr('হিস্টোরি', 'History')),
               const SizedBox(width: 96),
-              item(2, Icons.pie_chart_outline, Icons.pie_chart, 'পরিসংখ্যান'),
-              item(3, Icons.handshake_outlined, Icons.handshake, 'ধার'),
+              item(2, Icons.pie_chart_outline, Icons.pie_chart, tr('পরিসংখ্যান', 'Statistics')),
+              item(3, Icons.handshake_outlined, Icons.handshake, tr('ধার', 'Debt')),
             ],
           ),
         ),

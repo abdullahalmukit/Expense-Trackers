@@ -52,8 +52,22 @@ void main() {
     final food = cats.firstWhere((c) => c.name == 'খাবার');
     final debtIn = cats.firstWhere((c) => c.isDebt && c.kind == 1);
     final rafi = await repo.findOrCreatePerson('রাফি');
-    await repo.saveTxn(type: 0, amount: 12050, categoryId: food.id, occurredAt: DateTime(2026, 11, 2, 13, 5), note: 'দুপুরের খাবার, "ক্যান্টিন" #ক্যাম্পাস');
-    await repo.saveTxn(type: 1, amount: 100000, categoryId: debtIn.id, debtAction: DebtAction.borrow, personId: rafi, occurredAt: DateTime(2026, 11, 1), dueDate: DateTime(2026, 12, 1));
+    await repo.saveTxn(
+      type: 0,
+      amount: 12050,
+      categoryId: food.id,
+      occurredAt: DateTime(2026, 11, 2, 13, 5),
+      note: 'দুপুরের খাবার, "ক্যান্টিন" #ক্যাম্পাস',
+    );
+    await repo.saveTxn(
+      type: 1,
+      amount: 100000,
+      categoryId: debtIn.id,
+      debtAction: DebtAction.borrow,
+      personId: rafi,
+      occurredAt: DateTime(2026, 11, 1),
+      dueDate: DateTime(2026, 12, 1),
+    );
     await repo.setBudget(DateTime(2026, 11), 0, 500000);
   }
 
@@ -130,13 +144,17 @@ void main() {
   });
 
   test('নিজে বানানো CSV — ID ছাড়া, অজানা ক্যাটাগরি নিজে তৈরি', () async {
-    const text = 'date,type,amount,category,note\n05/11/2026,খরচ,২৫০,চা-নাস্তা,বন্ধুদের সাথে\n2026-11-06,income,1500,টিউশন,\n';
+    const text =
+        'date,type,amount,category,note\n05/11/2026,খরচ,২৫০,চা-নাস্তা,বন্ধুদের সাথে\n2026-11-06,income,1500,টিউশন,\n';
     final b = Importer.parse('mine.csv', Uint8List.fromList(utf8.encode(text)));
     expect(b.rows.length, 2);
     final p = await Importer.preview(repo, b);
     expect(p.newCategories, {'চা-নাস্তা'});
     expect(await Importer.merge(repo, b), 2);
-    expect(await Importer.merge(repo, Importer.parse('mine.csv', Uint8List.fromList(utf8.encode(text)))), 0);
+    expect(
+      await Importer.merge(repo, Importer.parse('mine.csv', Uint8List.fromList(utf8.encode(text)))),
+      0,
+    );
     final fin = await load(db);
     expect(fin.cats.any((c) => c.name == 'চা-নাস্তা' && c.kind == 0), true);
     expect(fin.txns.firstWhere((t) => t.type == 0).amount, 25000);
@@ -171,14 +189,16 @@ void main() {
   test('রিকারিং এন্ট্রি নিজে যোগ হয়', () async {
     final cats = await db.select(db.categories).get();
     final food = cats.firstWhere((c) => c.name == 'খাবার');
-    await repo.saveRecurring(RecurringsCompanion.insert(
-      title: 'মেস ভাড়া',
-      type: 0,
-      amount: 300000,
-      categoryId: food.id,
-      dayOfMonth: 5,
-      nextDate: DateTime(2026, 9, 5, 9),
-    ));
+    await repo.saveRecurring(
+      RecurringsCompanion.insert(
+        title: 'মেস ভাড়া',
+        type: 0,
+        amount: 300000,
+        categoryId: food.id,
+        dayOfMonth: 5,
+        nextDate: DateTime(2026, 9, 5, 9),
+      ),
+    );
     await repo.processRecurring(now: DateTime(2026, 11, 11));
     final txns = await db.select(db.transactions).get();
     expect(txns.length, 3); // সেপ্টে, অক্টো, নভে

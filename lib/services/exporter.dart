@@ -6,6 +6,7 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart' as xl;
 
 import '../core/dates.dart';
+import '../core/i18n.dart';
 import '../core/money.dart';
 import '../data/database.dart';
 import '../domain/finance.dart';
@@ -25,7 +26,37 @@ class Cols {
   static const purpose = 'উদ্দেশ্য';
   static const due = 'ফেরতের তারিখ';
 
-  static const all = [id, date, type, amount, category, emoji, debt, person, wallet, note, purpose, due];
+  static const all = [
+    id,
+    date,
+    type,
+    amount,
+    category,
+    emoji,
+    debt,
+    person,
+    wallet,
+    note,
+    purpose,
+    due,
+  ];
+  static const allEn = [
+    'ID',
+    'Date',
+    'Type',
+    'Amount',
+    'Category',
+    'Emoji',
+    'Debt',
+    'Person',
+    'Wallet',
+    'Note',
+    'Purpose',
+    'Due date',
+  ];
+
+  /// এক্সপোর্টের হেডার — বর্তমান ভাষায় (ইমপোর্ট দুটোই চেনে)
+  static List<String> get header => Lang.en ? allEn : all;
 
   static const aliases = <String, List<String>>{
     id: ['id', 'uuid'],
@@ -39,7 +70,7 @@ class Cols {
     wallet: ['wallet', 'account', 'একাউন্ট'],
     note: ['note', 'description', 'details', 'নোট'],
     purpose: ['purpose', 'উদ্দেশ্য'],
-    due: ['due', 'due_date', 'শোধের তারিখ'],
+    due: ['due', 'due_date', 'due date', 'শোধের তারিখ'],
   };
 
   /// হেডার সারি থেকে কলাম ইনডেক্স
@@ -86,10 +117,7 @@ List<Txn> _txnsIn(FinanceData fin, DateRange? r) {
 class Exporter {
   /// প্রতি সারিতে একটি এন্ট্রি (UTF-8 BOM সহ, যাতে Excel-এ বাংলা ঠিক দেখায়)
   static Uint8List csvBytes(FinanceData fin, DateRange? r) {
-    final rows = <List<dynamic>>[
-      Cols.all,
-      for (final t in _txnsIn(fin, r)) _rowFor(t, fin),
-    ];
+    final rows = <List<dynamic>>[Cols.header, for (final t in _txnsIn(fin, r)) _rowFor(t, fin)];
     final s = Csv(lineDelimiter: '\r\n').encode(rows);
     return Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(s)]);
   }
@@ -105,7 +133,10 @@ class Exporter {
       return xl.TextCellValue('$v');
     }
 
-    final bold = xl.CellStyle(bold: true, backgroundColorHex: xl.ExcelColor.fromHexString('#FFCF4A'));
+    final bold = xl.CellStyle(
+      bold: true,
+      backgroundColorHex: xl.ExcelColor.fromHexString('#FFCF4A'),
+    );
     void header(xl.Sheet s, List<String> h) {
       s.appendRow([for (final x in h) xl.TextCellValue(x)]);
       for (var i = 0; i < h.length; i++) {
@@ -115,8 +146,8 @@ class Exporter {
 
     // এন্ট্রি
     final txns = _txnsIn(fin, r);
-    final s1 = book['এন্ট্রি'];
-    header(s1, Cols.all);
+    final s1 = book[tr('এন্ট্রি', 'Entries')];
+    header(s1, Cols.header);
     for (final t in txns) {
       final row = _rowFor(t, fin);
       s1.appendRow([
@@ -126,12 +157,24 @@ class Exporter {
     }
 
     // মাসিক সারাংশ
-    final s2 = book['মাসিক সারাংশ'];
-    header(s2, ['মাস', 'শুরুর ব্যালেন্স', 'মোট জমা', 'মোট খরচ', 'ধার ছাড়া জমা', 'ধার ছাড়া খরচ', 'মাস শেষের ব্যালেন্স']);
-    final months = r?.months ??
+    final s2 = book[tr('মাসিক সারাংশ', 'Monthly summary')];
+    header(s2, [
+      tr('মাস', 'Month'),
+      tr('শুরুর ব্যালেন্স', 'Opening balance'),
+      tr('মোট জমা', 'Total income'),
+      tr('মোট খরচ', 'Total expense'),
+      tr('ধার ছাড়া জমা', 'Income excl. debt'),
+      tr('ধার ছাড়া খরচ', 'Expense excl. debt'),
+      tr('মাস শেষের ব্যালেন্স', 'Month-end balance'),
+    ]);
+    final months =
+        r?.months ??
         (txns.isEmpty
             ? <DateTime>[]
-            : DateRange(monthStart(txns.first.occurredAt), nextMonth(monthStart(txns.last.occurredAt))).months);
+            : DateRange(
+                monthStart(txns.first.occurredAt),
+                nextMonth(monthStart(txns.last.occurredAt)),
+              ).months);
     for (final m in months) {
       final s = fin.monthSummary(m);
       s2.appendRow([
@@ -142,8 +185,17 @@ class Exporter {
     }
 
     // ক্যাটাগরি
-    final s3 = book['ক্যাটাগরি'];
-    header(s3, ['নাম', 'ইমোজি', 'ধরন', 'রং', 'ক্রম', 'আর্কাইভ', 'ধার', 'মোট (এই পরিসরে)']);
+    final s3 = book[tr('ক্যাটাগরি', 'Category')];
+    header(s3, [
+      tr('নাম', 'Name'),
+      tr('ইমোজি', 'Emoji'),
+      tr('ধরন', 'Type'),
+      tr('রং', 'Colour'),
+      tr('ক্রম', 'Order'),
+      tr('আর্কাইভ', 'Archived'),
+      tr('ধার', 'Debt'),
+      tr('মোট (এই পরিসরে)', 'Total (in range)'),
+    ]);
     final range = r ?? DateRange(DateTime(1970), DateTime(3000));
     final tExp = fin.categoryTotals(range, TxType.expense);
     final tInc = fin.categoryTotals(range, TxType.income);
@@ -152,17 +204,27 @@ class Exporter {
         xl.TextCellValue(c.name),
         xl.TextCellValue(c.emoji),
         xl.TextCellValue(TxType.label(c.kind)),
-        xl.TextCellValue('#${(c.color & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}'),
+        xl.TextCellValue(
+          '#${(c.color & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}',
+        ),
         xl.IntCellValue(c.sortOrder),
-        xl.TextCellValue(c.archived ? 'হ্যাঁ' : 'না'),
-        xl.TextCellValue(c.isDebt ? 'হ্যাঁ' : 'না'),
+        xl.TextCellValue(c.archived ? tr('হ্যাঁ', 'Yes') : tr('না', 'No')),
+        xl.TextCellValue(c.isDebt ? tr('হ্যাঁ', 'Yes') : tr('না', 'No')),
         xl.DoubleCellValue(((c.kind == 0 ? tExp : tInc)[c.id] ?? 0) / 100),
       ]);
     }
 
     // ধার
-    final s4 = book['ধার'];
-    header(s4, ['ব্যক্তি', 'নিয়েছি', 'শোধ করেছি', 'আমি দেব', 'দিয়েছি', 'ফেরত পেয়েছি', 'আমি পাব']);
+    final s4 = book[tr('ধার', 'Debt')];
+    header(s4, [
+      tr('ব্যক্তি', 'Person'),
+      tr('নিয়েছি', 'Borrowed'),
+      tr('শোধ করেছি', 'Repaid'),
+      tr('আমি দেব', 'I owe'),
+      tr('দিয়েছি', 'Lent'),
+      tr('ফেরত পেয়েছি', 'Got back'),
+      tr('আমি পাব', 'Owed to me'),
+    ]);
     for (final d in fin.debts()) {
       s4.appendRow([
         xl.TextCellValue(d.person.name),
@@ -171,8 +233,8 @@ class Exporter {
       ]);
     }
 
-    if (defaultName != 'এন্ট্রি') book.delete(defaultName);
-    book.setDefaultSheet('এন্ট্রি');
+    if (defaultName != tr('এন্ট্রি', 'Entries')) book.delete(defaultName);
+    book.setDefaultSheet(tr('এন্ট্রি', 'Entries'));
     return Uint8List.fromList(book.encode()!);
   }
 
@@ -180,13 +242,30 @@ class Exporter {
   static Uint8List docxBytes(FinanceData fin, DateRange? r) {
     final d = _Docx();
     final txns = _txnsIn(fin, r);
-    final months = r?.months ??
+    final months =
+        r?.months ??
         (txns.isEmpty
             ? <DateTime>[]
-            : DateRange(monthStart(txns.first.occurredAt), nextMonth(monthStart(txns.last.occurredAt))).months);
-    d.para('টাকার খাতা — হিসাবের রিপোর্ট', size: 36, bold: true, color: '23308C');
-    d.para(r == null ? 'সব সময়ের হিসাব' : r.label, size: 24, color: '555555');
-    d.para('তৈরি: ${dateTimeLabel(DateTime.now())}', size: 18, color: '888888');
+            : DateRange(
+                monthStart(txns.first.occurredAt),
+                nextMonth(monthStart(txns.last.occurredAt)),
+              ).months);
+    d.para(
+      tr('টাকার খাতা — হিসাবের রিপোর্ট', 'Takar Khata — Account report'),
+      size: 36,
+      bold: true,
+      color: '23308C',
+    );
+    d.para(
+      r == null ? tr('সব সময়ের হিসাব', 'All-time records') : r.label,
+      size: 24,
+      color: '555555',
+    );
+    d.para(
+      tr('তৈরি: ${dateTimeLabel(DateTime.now())}', 'Generated: ${dateTimeLabel(DateTime.now())}'),
+      size: 18,
+      color: '888888',
+    );
 
     for (final m in months) {
       final range = DateRange.month(m);
@@ -195,14 +274,14 @@ class Exporter {
       final s = fin.monthSummary(m);
       d.para(monthLabel(m), size: 30, bold: true, color: '23308C', spaceBefore: 360);
       d.table(
-        ['বিষয়', 'টাকা'],
+        [tr('বিষয়', 'Item'), tr('টাকা', 'Amount')],
         [
-          ['শুরুর ব্যালেন্স', money(s.opening)],
-          ['মোট জমা (ধার সহ)', money(s.income)],
-          ['মোট খরচ (ধার সহ)', money(s.expense)],
-          ['ধার ছাড়া আসল জমা', money(s.realIncome)],
-          ['ধার ছাড়া আসল খরচ', money(s.realExpense)],
-          ['মাস শেষের ব্যালেন্স', money(s.closing)],
+          [tr('শুরুর ব্যালেন্স', 'Opening balance'), money(s.opening)],
+          [tr('মোট জমা (ধার সহ)', 'Total income (incl. debt)'), money(s.income)],
+          [tr('মোট খরচ (ধার সহ)', 'Total expense (incl. debt)'), money(s.expense)],
+          [tr('ধার ছাড়া আসল জমা', 'Income excl. debt'), money(s.realIncome)],
+          [tr('ধার ছাড়া আসল খরচ', 'Expense excl. debt'), money(s.realExpense)],
+          [tr('মাস শেষের ব্যালেন্স', 'Month-end balance'), money(s.closing)],
         ],
         widths: [5000, 3000],
       );
@@ -210,9 +289,14 @@ class Exporter {
         ..sort((a, b) => b.value.compareTo(a.value));
       if (cats.isNotEmpty) {
         final total = cats.fold(0, (x, e) => x + e.value);
-        d.para('ক্যাটাগরি অনুযায়ী খরচ', size: 24, bold: true, spaceBefore: 240);
+        d.para(
+          tr('ক্যাটাগরি অনুযায়ী খরচ', 'Spending by category'),
+          size: 24,
+          bold: true,
+          spaceBefore: 240,
+        );
         d.table(
-          ['ক্যাটাগরি', 'টাকা', 'ভাগ'],
+          [tr('ক্যাটাগরি', 'Category'), tr('টাকা', 'Amount'), tr('ভাগ', 'Share')],
           [
             for (final e in cats)
               [
@@ -225,16 +309,23 @@ class Exporter {
         );
       }
       if (list.isNotEmpty) {
-        d.para('এন্ট্রির তালিকা', size: 24, bold: true, spaceBefore: 240);
+        d.para(tr('এন্ট্রির তালিকা', 'Entries'), size: 24, bold: true, spaceBefore: 240);
         d.table(
-          ['তারিখ', 'ক্যাটাগরি', 'বিবরণ', 'জমা', 'খরচ'],
+          [
+            tr('তারিখ', 'Date'),
+            tr('ক্যাটাগরি', 'Category'),
+            tr('বিবরণ', 'Note'),
+            tr('জমা', 'Income'),
+            tr('খরচ', 'Expense'),
+          ],
           [
             for (final t in list)
               [
                 '${dayLabel(t.occurredAt)} ${timeLabel(t.occurredAt)}',
                 [
                   fin.catById[t.categoryId]?.name ?? '',
-                  if (t.debtAction != null) '(${DebtAction.label(t.debtAction!)}${t.personId != null ? ' · ${fin.personById[t.personId]?.name ?? ''}' : ''})',
+                  if (t.debtAction != null)
+                    '(${DebtAction.label(t.debtAction!)}${t.personId != null ? ' · ${fin.personById[t.personId]?.name ?? ''}' : ''})',
                 ].join(' '),
                 [t.note, t.purpose].where((x) => x.isNotEmpty).join(' · '),
                 t.type == TxType.income ? money(t.amount) : '',
@@ -248,10 +339,18 @@ class Exporter {
     }
     final debts = fin.debts().where((x) => !x.settled).toList();
     if (debts.isNotEmpty) {
-      d.para('বাকি ধার (আজ পর্যন্ত)', size: 28, bold: true, color: '7E57C2', spaceBefore: 360);
+      d.para(
+        tr('বাকি ধার (আজ পর্যন্ত)', 'Outstanding debts (as of today)'),
+        size: 28,
+        bold: true,
+        color: '7E57C2',
+        spaceBefore: 360,
+      );
       d.table(
-        ['ব্যক্তি', 'আমি দেব', 'আমি পাব'],
-        [for (final x in debts) [x.person.name, money(x.payable), money(x.receivable)]],
+        [tr('ব্যক্তি', 'Person'), tr('আমি দেব', 'I owe'), tr('আমি পাব', 'Owed to me')],
+        [
+          for (final x in debts) [x.person.name, money(x.payable), money(x.receivable)],
+        ],
         widths: [4000, 2200, 2200],
       );
     }
@@ -282,7 +381,12 @@ class _Docx {
     );
   }
 
-  void table(List<String> head, List<List<String>> rows, {required List<int> widths, bool small = false}) {
+  void table(
+    List<String> head,
+    List<List<String>> rows, {
+    required List<int> widths,
+    bool small = false,
+  }) {
     final sz = small ? 18 : 21;
     String cell(String t, int w, {bool header = false, bool right = false}) =>
         '<w:tc><w:tcPr><w:tcW w:w="$w" w:type="dxa"/>'

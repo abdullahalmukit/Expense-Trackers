@@ -18,6 +18,7 @@ import '../../providers.dart';
 import '../manage/category_editor.dart';
 import '../widgets/common.dart';
 import 'numpad.dart';
+import '../../core/i18n.dart';
 
 /// এন্ট্রি যোগ/এডিটের বটম শিট।
 Future<void> showEntrySheet(
@@ -69,8 +70,7 @@ class EntrySheet extends ConsumerStatefulWidget {
   ConsumerState<EntrySheet> createState() => _EntrySheetState();
 }
 
-class _EntrySheetState extends ConsumerState<EntrySheet>
-    with SingleTickerProviderStateMixin {
+class _EntrySheetState extends ConsumerState<EntrySheet> with SingleTickerProviderStateMixin {
   late int _type;
   String _expr = '';
   int? _categoryId;
@@ -178,10 +178,7 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (d == null || !mounted) return;
-    final t = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_at),
-    );
+    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_at));
     setState(() {
       _at = DateTime(d.year, d.month, d.day, t?.hour ?? _at.hour, t?.minute ?? _at.minute);
     });
@@ -195,26 +192,32 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
 
   Future<void> _pickPhoto(ImageSource src) async {
     try {
-      final x = await ImagePicker().pickImage(
-        source: src,
-        maxWidth: 1600,
-        imageQuality: 75,
-      );
+      final x = await ImagePicker().pickImage(source: src, maxWidth: 1600, imageQuality: 75);
       if (x == null) return;
       final dir = await getApplicationDocumentsDirectory();
       final rec = Directory(p.join(dir.path, 'receipts'));
       await rec.create(recursive: true);
-      final dest = p.join(rec.path, '${newId()}${p.extension(x.path).isEmpty ? '.jpg' : p.extension(x.path)}');
+      final dest = p.join(
+        rec.path,
+        '${newId()}${p.extension(x.path).isEmpty ? '.jpg' : p.extension(x.path)}',
+      );
       await File(x.path).copy(dest);
       setState(() => _photo = dest);
     } catch (e) {
-      if (mounted) toast(context, 'ছবি নেওয়া যায়নি');
+      if (mounted) toast(context, tr('ছবি নেওয়া যায়নি', 'Could not get the photo'));
     }
   }
 
   Future<void> _delete() async {
     final e = widget.edit!;
-    if (!await confirm(context, 'এন্ট্রি মুছবেন?', ok: 'মুছুন', danger: true)) return;
+    if (!await confirm(
+      context,
+      tr('এন্ট্রি মুছবেন?', 'Delete entry?'),
+      ok: tr('মুছুন', 'Delete'),
+      danger: true,
+    )) {
+      return;
+    }
     await ref.read(repoProvider).deleteTxn(e.id);
     await ref.read(effectsProvider).afterDelete(e.id);
     if (mounted) Navigator.pop(context);
@@ -224,11 +227,11 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
     if (_saving) return;
     final amount = _amount;
     if (amount == null || amount <= 0) {
-      toast(context, 'টাকার অংক লিখুন');
+      toast(context, tr('টাকার অংক লিখুন', 'Enter an amount'));
       return;
     }
     if (_categoryId == null) {
-      toast(context, 'একটি ক্যাটাগরি বাছুন');
+      toast(context, tr('একটি ক্যাটাগরি বাছুন', 'Pick a category'));
       return;
     }
     final repo = ref.read(repoProvider);
@@ -241,7 +244,15 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
         personId = await repo.findOrCreatePerson(_newPerson!);
       }
       if (personId == null) {
-        if (mounted) toast(context, 'কার সাথে ধার — ব্যক্তি বাছুন বা নাম লিখুন');
+        if (mounted) {
+          toast(
+            context,
+            tr(
+              'কার সাথে ধার — ব্যক্তি বাছুন বা নাম লিখুন',
+              'Who is the debt with? Pick a person or type a name',
+            ),
+          );
+        }
         return;
       }
     }
@@ -301,7 +312,7 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     Expanded(
@@ -310,15 +321,15 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                           selectedBackgroundColor: color.withValues(alpha: .18),
                           selectedForegroundColor: color,
                         ),
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: TxType.expense,
-                            label: Text('খরচ'),
+                            label: Text(tr('খরচ', 'Expense')),
                             icon: Icon(Icons.north_east),
                           ),
                           ButtonSegment(
                             value: TxType.income,
-                            label: Text('জমা'),
+                            label: Text(tr('জমা', 'Income')),
                             icon: Icon(Icons.south_west),
                           ),
                         ],
@@ -328,7 +339,7 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                     ),
                     if (widget.edit != null)
                       IconButton(
-                        tooltip: 'মুছুন',
+                        tooltip: tr('মুছুন', 'Delete'),
                         onPressed: _delete,
                         icon: const Icon(Icons.delete_outline),
                       ),
@@ -352,12 +363,12 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                     ),
                     if (hasOperator(_expr))
                       Text(
-                        amount == null ? 'ভুল হিসাব' : '= ${money(amount)}',
+                        amount == null ? tr('ভুল হিসাব', 'Invalid') : '= ${money(amount)}',
                         style: TextStyle(color: scheme.outline, fontWeight: FontWeight.w600),
                       ),
                     if (_savedCount > 0)
                       Text(
-                        '${dg(_savedCount)}টি এন্ট্রি সেভ হয়েছে',
+                        tr('${dg(_savedCount)}টি এন্ট্রি সেভ হয়েছে', '${dg(_savedCount)} saved'),
                         style: TextStyle(color: AppColors.income, fontSize: 12),
                       ),
                   ],
@@ -413,12 +424,12 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                           onPressed: _pickDateTime,
                         ),
                         ChoiceChip(
-                          label: const Text('আজ'),
+                          label: Text(tr('আজ', 'Today')),
                           selected: sameDay(_at, DateTime.now()),
                           onSelected: (_) => _quickDay(0),
                         ),
                         ChoiceChip(
-                          label: const Text('গতকাল'),
+                          label: Text(tr('গতকাল', 'Yesterday')),
                           selected: sameDay(_at, DateTime.now().subtract(const Duration(days: 1))),
                           onSelected: (_) => _quickDay(1),
                         ),
@@ -440,14 +451,19 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                           ListTile(
                             dense: true,
                             leading: const Icon(Icons.notes),
-                            title: const Text('বিবরণ, উদ্দেশ্য ও রসিদ'),
+                            title: Text(tr('বিবরণ, উদ্দেশ্য ও রসিদ', 'Note, purpose & receipt')),
                             subtitle: (_note.text.isNotEmpty || _purpose.text.isNotEmpty)
                                 ? Text(
-                                    [_note.text, _purpose.text].where((s) => s.isNotEmpty).join(' · '),
+                                    [
+                                      _note.text,
+                                      _purpose.text,
+                                    ].where((s) => s.isNotEmpty).join(' · '),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   )
-                                : const Text('ঐচ্ছিক · #ট্যাগ লেখা যায়'),
+                                : Text(
+                                    tr('ঐচ্ছিক · #ট্যাগ লেখা যায়', 'Optional · #tags supported'),
+                                  ),
                             trailing: Icon(_details ? Icons.expand_less : Icons.expand_more),
                             onTap: () => setState(() => _details = !_details),
                           ),
@@ -458,13 +474,13 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                                 children: [
                                   _SuggestField(
                                     controller: _note,
-                                    label: 'বিবরণ',
+                                    label: tr('বিবরণ', 'Note'),
                                     suggestions: _suggestions(fin, (t) => t.note),
                                   ),
                                   const SizedBox(height: 8),
                                   _SuggestField(
                                     controller: _purpose,
-                                    label: 'উদ্দেশ্য',
+                                    label: tr('উদ্দেশ্য', 'Purpose'),
                                     suggestions: _suggestions(fin, (t) => t.purpose),
                                   ),
                                   const SizedBox(height: 8),
@@ -480,7 +496,8 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                                               width: 56,
                                               height: 56,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) => const Icon(Icons.broken_image),
+                                              errorBuilder: (_, _, _) =>
+                                                  const Icon(Icons.broken_image),
                                             ),
                                           ),
                                         ),
@@ -493,12 +510,12 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                                       TextButton.icon(
                                         onPressed: () => _pickPhoto(ImageSource.camera),
                                         icon: const Icon(Icons.photo_camera_outlined),
-                                        label: const Text('ছবি'),
+                                        label: Text(tr('ছবি', 'Camera')),
                                       ),
                                       TextButton.icon(
                                         onPressed: () => _pickPhoto(ImageSource.gallery),
                                         icon: const Icon(Icons.photo_outlined),
-                                        label: const Text('গ্যালারি'),
+                                        label: Text(tr('গ্যালারি', 'Gallery')),
                                       ),
                                     ],
                                   ),
@@ -530,7 +547,7 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                           child: OutlinedButton(
                             onPressed: _saving ? null : () => _save(another: true),
                             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                            child: const Text('সেভ ও আরেকটা'),
+                            child: Text(tr('সেভ ও আরেকটা', 'Save & add another')),
                           ),
                         ),
                       if (widget.edit == null) const SizedBox(width: 10),
@@ -542,7 +559,9 @@ class _EntrySheetState extends ConsumerState<EntrySheet>
                             backgroundColor: color,
                           ),
                           icon: const Icon(Icons.check),
-                          label: Text(widget.edit == null ? 'সেভ' : 'আপডেট'),
+                          label: Text(
+                            widget.edit == null ? tr('সেভ', 'Save') : tr('আপডেট', 'Update'),
+                          ),
                         ),
                       ),
                     ],
@@ -638,7 +657,7 @@ class _CategoryGrid extends StatelessWidget {
         _Tile(
           emoji: '',
           icon: Icons.add_circle_outline,
-          label: 'নতুন',
+          label: tr('নতুন', 'New'),
           color: scheme.outline,
           selected: false,
           onTap: onNew,
@@ -749,7 +768,9 @@ class _DebtSectionState extends State<_DebtSection> {
     int? remainingOf(int pid) {
       final d = debts[pid];
       if (d == null) return null;
-      return widget.action == DebtAction.repay ? d.payable : (widget.action == DebtAction.collect ? d.receivable : null);
+      return widget.action == DebtAction.repay
+          ? d.payable
+          : (widget.action == DebtAction.collect ? d.receivable : null);
     }
 
     final persons = [...widget.fin.persons];
@@ -770,14 +791,13 @@ class _DebtSectionState extends State<_DebtSection> {
                 selectedForegroundColor: AppColors.debt,
               ),
               segments: [
-                for (final a in actions)
-                  ButtonSegment(value: a, label: Text(DebtAction.label(a))),
+                for (final a in actions) ButtonSegment(value: a, label: Text(DebtAction.label(a))),
               ],
               selected: {actions.contains(widget.action) ? widget.action : actions.first},
               onSelectionChanged: (s) => widget.onAction(s.first),
             ),
             const SizedBox(height: 10),
-            Text('কার সাথে?', style: Theme.of(context).textTheme.labelLarge),
+            Text(tr('কার সাথে?', 'With whom?'), style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
@@ -798,7 +818,7 @@ class _DebtSectionState extends State<_DebtSection> {
                   ),
                 ActionChip(
                   avatar: const Icon(Icons.person_add_alt, size: 18),
-                  label: const Text('নতুন নাম'),
+                  label: Text(tr('নতুন নাম', 'New name')),
                   onPressed: () => setState(() => _typing = true),
                 ),
               ],
@@ -809,8 +829,8 @@ class _DebtSectionState extends State<_DebtSection> {
                 child: TextField(
                   controller: _name,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'ব্যক্তির নাম',
+                  decoration: InputDecoration(
+                    labelText: tr('ব্যক্তির নাম', 'Person\'s name'),
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   onChanged: widget.onNewPerson,
@@ -825,8 +845,13 @@ class _DebtSectionState extends State<_DebtSection> {
                     avatar: const Icon(Icons.alarm, size: 18),
                     label: Text(
                       widget.due == null
-                          ? (widget.action == DebtAction.borrow ? 'শোধের তারিখ (ঐচ্ছিক)' : 'ফেরতের তারিখ (ঐচ্ছিক)')
-                          : 'রিমাইন্ডার: ${dayLabel(widget.due!)}',
+                          ? (widget.action == DebtAction.borrow
+                                ? tr('শোধের তারিখ (ঐচ্ছিক)', 'Repay by (optional)')
+                                : tr('ফেরতের তারিখ (ঐচ্ছিক)', 'Return by (optional)'))
+                          : tr(
+                              'রিমাইন্ডার: ${dayLabel(widget.due!)}',
+                              'Reminder: ${dayLabel(widget.due!)}',
+                            ),
                     ),
                     onDeleted: widget.due == null ? null : () => widget.onDue(null),
                     onPressed: () async {
@@ -873,11 +898,7 @@ class _WalletChips extends StatelessWidget {
 }
 
 class _SuggestField extends StatefulWidget {
-  const _SuggestField({
-    required this.controller,
-    required this.label,
-    required this.suggestions,
-  });
+  const _SuggestField({required this.controller, required this.label, required this.suggestions});
   final TextEditingController controller;
   final String label;
   final List<String> suggestions;
@@ -903,9 +924,7 @@ class _SuggestFieldState extends State<_SuggestField> {
       optionsBuilder: (v) {
         final q = v.text.trim().toLowerCase();
         if (q.isEmpty) return const [];
-        return widget.suggestions
-            .where((s) => s.toLowerCase().contains(q) && s != v.text)
-            .take(5);
+        return widget.suggestions.where((s) => s.toLowerCase().contains(q) && s != v.text).take(5);
       },
       fieldViewBuilder: (context, c, focus, onSubmit) => TextField(
         controller: c,

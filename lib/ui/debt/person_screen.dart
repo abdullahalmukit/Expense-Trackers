@@ -9,6 +9,7 @@ import '../../providers.dart';
 import '../entry/entry_sheet.dart';
 import '../manage/persons_screen.dart';
 import '../widgets/common.dart';
+import '../../core/i18n.dart';
 
 /// একজন ব্যক্তির পুরো ধারের হিস্টোরি — সেখান থেকেই 'শোধ করুন' বা 'ফেরত পেলাম'
 class PersonScreen extends ConsumerWidget {
@@ -20,19 +21,26 @@ class PersonScreen extends ConsumerWidget {
     final fin = ref.watch(financeProvider);
     final person = fin.personById[personId];
     if (person == null) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: Text('ব্যক্তি পাওয়া যায়নি')));
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text(tr('ব্যক্তি পাওয়া যায়নি', 'Person not found'))),
+      );
     }
     final d = fin.debts().where((x) => x.person.id == personId).firstOrNull ?? PersonDebt(person);
     final rows = fin.ledger(personId);
-    final payRows = rows.where((r) => r.txn.debtAction == DebtAction.borrow || r.txn.debtAction == DebtAction.repay).toList();
-    final recRows = rows.where((r) => r.txn.debtAction == DebtAction.lend || r.txn.debtAction == DebtAction.collect).toList();
+    final payRows = rows
+        .where((r) => r.txn.debtAction == DebtAction.borrow || r.txn.debtAction == DebtAction.repay)
+        .toList();
+    final recRows = rows
+        .where((r) => r.txn.debtAction == DebtAction.lend || r.txn.debtAction == DebtAction.collect)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(person.name),
         actions: [
           IconButton(
-            tooltip: 'এডিট',
+            tooltip: tr('এডিট', 'Edit'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => showPersonEditor(context, ref, person),
           ),
@@ -45,55 +53,75 @@ class PersonScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                [if (person.phone.isNotEmpty) '📞 ${dg(person.phone)}', if (person.note.isNotEmpty) person.note].join(' · '),
+                [
+                  if (person.phone.isNotEmpty) '📞 ${dg(person.phone)}',
+                  if (person.note.isNotEmpty) person.note,
+                ].join(' · '),
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
           if (d.settled && rows.isNotEmpty)
             Card(
               color: AppColors.income.withValues(alpha: .12),
-              child: const ListTile(
+              child: ListTile(
                 leading: Icon(Icons.verified, color: AppColors.income),
-                title: Text('সব মীমাংসিত'),
-                subtitle: Text('কোনো দেনা-পাওনা বাকি নেই — হিস্টোরি নিচে থাকল'),
+                title: Text(tr('সব মীমাংসিত', 'All settled')),
+                subtitle: Text(
+                  tr(
+                    'কোনো দেনা-পাওনা বাকি নেই — হিস্টোরি নিচে থাকল',
+                    'Nothing outstanding — history is kept below',
+                  ),
+                ),
               ),
             ),
           if (d.borrowed > 0 || payRows.isNotEmpty)
             _Side(
-              title: 'আমি নিয়েছি',
+              title: tr('আমি নিয়েছি', 'I borrowed'),
               total: d.borrowed,
               done: d.repaid,
-              doneLabel: 'শোধ করেছি',
+              doneLabel: tr('শোধ করেছি', 'Repaid'),
               remaining: d.payable,
-              remainingLabel: 'বাকি (আমি দেব)',
+              remainingLabel: tr('বাকি (আমি দেব)', 'Remaining (I owe)'),
               color: AppColors.expense,
               rows: payRows,
               fin: fin,
-              actionLabel: 'শোধ করুন',
+              actionLabel: tr('শোধ করুন', 'Repay'),
               onAction: d.payable > 0
-                  ? () => showEntrySheet(context, debtAction: DebtAction.repay, personId: personId, amount: d.payable)
+                  ? () => showEntrySheet(
+                      context,
+                      debtAction: DebtAction.repay,
+                      personId: personId,
+                      amount: d.payable,
+                    )
                   : null,
-              onAgain: () => showEntrySheet(context, debtAction: DebtAction.borrow, personId: personId),
-              againLabel: 'আরও নিলাম',
+              onAgain: () =>
+                  showEntrySheet(context, debtAction: DebtAction.borrow, personId: personId),
+              againLabel: tr('আরও নিলাম', 'Borrow more'),
             ),
           if (d.lent > 0 || recRows.isNotEmpty) ...[
             const SizedBox(height: 12),
             _Side(
-              title: 'আমি দিয়েছি',
+              title: tr('আমি দিয়েছি', 'I lent'),
               total: d.lent,
               done: d.collected,
-              doneLabel: 'ফেরত পেয়েছি',
+              doneLabel: tr('ফেরত পেয়েছি', 'Got back'),
               remaining: d.receivable,
-              remainingLabel: 'পাওনা বাকি (আমি পাব)',
+              remainingLabel: tr('পাওনা বাকি (আমি পাব)', 'Remaining (owed to me)'),
               color: AppColors.income,
               rows: recRows,
               fin: fin,
-              actionLabel: 'ফেরত পেলাম',
+              actionLabel: tr('ফেরত পেলাম', 'Got back'),
               onAction: d.receivable > 0
-                  ? () => showEntrySheet(context, debtAction: DebtAction.collect, personId: personId, amount: d.receivable)
+                  ? () => showEntrySheet(
+                      context,
+                      debtAction: DebtAction.collect,
+                      personId: personId,
+                      amount: d.receivable,
+                    )
                   : null,
-              onAgain: () => showEntrySheet(context, debtAction: DebtAction.lend, personId: personId),
-              againLabel: 'আরও দিলাম',
+              onAgain: () =>
+                  showEntrySheet(context, debtAction: DebtAction.lend, personId: personId),
+              againLabel: tr('আরও দিলাম', 'Lend more'),
             ),
           ],
           if (rows.isEmpty) ...[
@@ -102,15 +130,17 @@ class PersonScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => showEntrySheet(context, debtAction: DebtAction.borrow, personId: personId),
-                    child: const Text('ধার নিলাম'),
+                    onPressed: () =>
+                        showEntrySheet(context, debtAction: DebtAction.borrow, personId: personId),
+                    child: Text(tr('ধার নিলাম', 'Borrowed')),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => showEntrySheet(context, debtAction: DebtAction.lend, personId: personId),
-                    child: const Text('ধার দিলাম'),
+                    onPressed: () =>
+                        showEntrySheet(context, debtAction: DebtAction.lend, personId: personId),
+                    child: Text(tr('ধার দিলাম', 'Lent')),
                   ),
                 ),
               ],
@@ -160,7 +190,7 @@ class _Side extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          StatLine('মোট', money(total)),
+          StatLine(tr('মোট', 'Total'), money(total)),
           StatLine(doneLabel, money(done)),
           StatLine(remainingLabel, money(remaining), color: AppColors.debt, bold: true),
           if (total > 0) ...[
@@ -199,12 +229,12 @@ class _Side extends StatelessWidget {
             ),
             child: DefaultTextStyle.merge(
               style: TextStyle(fontSize: 12, color: outline, fontWeight: FontWeight.w700),
-              child: const Row(
+              child: Row(
                 children: [
-                  Expanded(flex: 3, child: Text('তারিখ')),
-                  Expanded(flex: 3, child: Text('কী হলো')),
-                  Expanded(flex: 3, child: Text('টাকা', textAlign: TextAlign.end)),
-                  Expanded(flex: 3, child: Text('বাকি', textAlign: TextAlign.end)),
+                  Expanded(flex: 3, child: Text(tr('তারিখ', 'Date'))),
+                  Expanded(flex: 3, child: Text(tr('কী হলো', 'What'))),
+                  Expanded(flex: 3, child: Text(tr('টাকা', 'Amount'), textAlign: TextAlign.end)),
+                  Expanded(flex: 3, child: Text(tr('বাকি', 'Left'), textAlign: TextAlign.end)),
                 ],
               ),
             ),
@@ -216,7 +246,10 @@ class _Side extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 child: Row(
                   children: [
-                    Expanded(flex: 3, child: Text(dayLabel(r.txn.occurredAt), style: const TextStyle(fontSize: 13))),
+                    Expanded(
+                      flex: 3,
+                      child: Text(dayLabel(r.txn.occurredAt), style: const TextStyle(fontSize: 13)),
+                    ),
                     Expanded(
                       flex: 3,
                       child: Text(
@@ -226,7 +259,11 @@ class _Side extends StatelessWidget {
                     ),
                     Expanded(
                       flex: 3,
-                      child: Text(money(r.txn.amount), textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      child: Text(
+                        money(r.txn.amount),
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                     Expanded(
                       flex: 3,
@@ -243,7 +280,10 @@ class _Side extends StatelessWidget {
           if (rows.any((r) => r.txn.note.isNotEmpty))
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('সারিতে ট্যাপ করলে এডিট', style: TextStyle(fontSize: 11, color: outline)),
+              child: Text(
+                tr('সারিতে ট্যাপ করলে এডিট', 'Tap a row to edit'),
+                style: TextStyle(fontSize: 11, color: outline),
+              ),
             ),
         ],
       ),

@@ -18,10 +18,13 @@ class TakaWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.taka_widget).apply {
+                // লেবেল অ্যাপের ভাষা অনুযায়ী (বাংলা/English) Dart থেকে আসে
+                setTextViewText(R.id.widget_label, widgetData.getString("label_today", "আজকের খরচ"))
                 setTextViewText(R.id.widget_today, widgetData.getString("today_expense", "৳০"))
                 setTextViewText(
                     R.id.widget_month,
-                    "এ মাসে খরচ " + widgetData.getString("month_expense", "৳০"),
+                    widgetData.getString("label_month", "এ মাসে খরচ") + " " +
+                        widgetData.getString("month_expense", "৳০"),
                 )
                 setOnClickPendingIntent(
                     R.id.widget_root,

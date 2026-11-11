@@ -51,7 +51,11 @@ class Files {
   static Future<void> share(String name, Uint8List bytes, String mime, {String? text}) async {
     final f = await writeTemp(name, bytes);
     await SharePlus.instance.share(
-      ShareParams(files: [XFile(f.path, mimeType: mime)], text: text, subject: name),
+      ShareParams(
+        files: [XFile(f.path, mimeType: mime)],
+        text: text,
+        subject: name,
+      ),
     );
   }
 

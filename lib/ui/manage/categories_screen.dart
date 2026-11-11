@@ -6,6 +6,7 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../widgets/common.dart';
 import 'category_editor.dart';
+import '../../core/i18n.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
@@ -16,18 +17,20 @@ class CategoriesScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('ক্যাটাগরি'),
-          bottom: const TabBar(tabs: [Tab(text: 'খরচ'), Tab(text: 'জমা')]),
+          title: Text(tr('ক্যাটাগরি', 'Categories')),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: tr('খরচ', 'Expense')),
+              Tab(text: tr('জমা', 'Income')),
+            ],
+          ),
         ),
         floatingActionButton: Builder(
           builder: (context) => FloatingActionButton.extended(
-            onPressed: () => showCategoryEditor(
-              context,
-              ref,
-              kind: DefaultTabController.of(context).index,
-            ),
+            onPressed: () =>
+                showCategoryEditor(context, ref, kind: DefaultTabController.of(context).index),
             icon: const Icon(Icons.add),
-            label: const Text('নতুন'),
+            label: Text(tr('নতুন', 'New')),
           ),
         ),
         body: const TabBarView(children: [_CatList(kind: 0), _CatList(kind: 1)]),
@@ -53,10 +56,16 @@ class _CatList extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        const SliverToBoxAdapter(
+        SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
-            child: Text('ধরে রেখে টেনে ক্রম বদলান · ট্যাপ করে এডিট', style: TextStyle(fontSize: 12)),
+            child: Text(
+              tr(
+                'ধরে রেখে টেনে ক্রম বদলান · ট্যাপ করে এডিট',
+                'Hold and drag to reorder · tap to edit',
+              ),
+              style: TextStyle(fontSize: 12),
+            ),
           ),
         ),
         SliverReorderableList(
@@ -78,7 +87,15 @@ class _CatList extends ConsumerWidget {
                   leading: CatAvatar.of(c),
                   title: Text(c.name),
                   subtitle: Text(
-                    c.isDebt ? 'সিস্টেম ক্যাটাগরি · ${dg(counts[c.id] ?? 0)}টি এন্ট্রি' : '${dg(counts[c.id] ?? 0)}টি এন্ট্রি',
+                    c.isDebt
+                        ? tr(
+                            'সিস্টেম ক্যাটাগরি · ${dg(counts[c.id] ?? 0)}টি এন্ট্রি',
+                            'System category · ${dg(counts[c.id] ?? 0)} entries',
+                          )
+                        : tr(
+                            '${dg(counts[c.id] ?? 0)}টি এন্ট্রি',
+                            '${dg(counts[c.id] ?? 0)} entries',
+                          ),
                   ),
                   onTap: () => showCategoryEditor(context, ref, cat: c),
                   trailing: Row(
@@ -100,16 +117,23 @@ class _CatList extends ConsumerWidget {
         if (archived.isNotEmpty)
           SliverToBoxAdapter(
             child: ExpansionTile(
-              title: Text('আর্কাইভ (${dg(archived.length)})'),
+              title: Text(
+                tr('আর্কাইভ (${dg(archived.length)})', 'Archived (${dg(archived.length)})'),
+              ),
               children: [
                 for (final c in archived)
                   ListTile(
                     leading: CatAvatar.of(c),
                     title: Text(c.name),
-                    subtitle: Text('${dg(counts[c.id] ?? 0)}টি পুরনো এন্ট্রি'),
+                    subtitle: Text(
+                      tr(
+                        '${dg(counts[c.id] ?? 0)}টি পুরনো এন্ট্রি',
+                        '${dg(counts[c.id] ?? 0)} old entries',
+                      ),
+                    ),
                     trailing: TextButton(
                       onPressed: () => ref.read(repoProvider).setCategoryArchived(c.id, false),
-                      child: const Text('ফিরিয়ে আনুন'),
+                      child: Text(tr('ফিরিয়ে আনুন', 'Restore')),
                     ),
                   ),
               ],
@@ -127,7 +151,12 @@ Future<void> deleteCategoryFlow(BuildContext context, WidgetRef ref, Cat c) asyn
   final n = await repo.countTxnsInCategory(c.id);
   if (!context.mounted) return;
   if (n == 0) {
-    if (await confirm(context, '"${c.name}" মুছবেন?', ok: 'মুছুন', danger: true)) {
+    if (await confirm(
+      context,
+      tr('"${c.name}" মুছবেন?', 'Delete "${c.name}"?'),
+      ok: tr('মুছুন', 'Delete'),
+      danger: true,
+    )) {
       await repo.deleteCategory(c.id);
     }
     return;
@@ -138,36 +167,62 @@ Future<void> deleteCategoryFlow(BuildContext context, WidgetRef ref, Cat c) asyn
   final choice = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('"${c.name}"-এ ${dg(n)}টি এন্ট্রি আছে'),
-      content: const Text('পুরনো হিসাব নষ্ট না করতে কী করবেন?'),
+      title: Text(tr('"${c.name}"-এ ${dg(n)}টি এন্ট্রি আছে', '"${c.name}" has ${dg(n)} entries')),
+      content: Text(
+        tr('পুরনো হিসাব নষ্ট না করতে কী করবেন?', 'What should happen so old records stay intact?'),
+      ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('বাতিল')),
-        TextButton(onPressed: () => Navigator.pop(ctx, 'archive'), child: const Text('আর্কাইভ করুন')),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('বাতিল', 'Cancel'))),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, 'archive'),
+          child: Text(tr('আর্কাইভ করুন', 'Archive')),
+        ),
         if (cats.isNotEmpty)
-          FilledButton(onPressed: () => Navigator.pop(ctx, 'move'), child: const Text('অন্যটিতে সরান')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'move'),
+            child: Text(tr('অন্যটিতে সরান', 'Move to another')),
+          ),
       ],
     ),
   );
   if (!context.mounted) return;
   if (choice == 'archive') {
     await repo.setCategoryArchived(c.id, true);
-    if (context.mounted) toast(context, 'আর্কাইভ হয়েছে — এন্ট্রিগুলো আগের মতোই থাকল');
+    if (context.mounted) {
+      toast(
+        context,
+        tr(
+          'আর্কাইভ হয়েছে — এন্ট্রিগুলো আগের মতোই থাকল',
+          'Archived — the entries are kept as they were',
+        ),
+      );
+    }
   } else if (choice == 'move') {
     final target = await showDialog<Cat>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('কোন ক্যাটাগরিতে সরাবেন?'),
+        title: Text(tr('কোন ক্যাটাগরিতে সরাবেন?', 'Move to which category?')),
         children: [
           for (final x in cats)
             SimpleDialogOption(
               onPressed: () => Navigator.pop(ctx, x),
-              child: Row(children: [CatAvatar.of(x, size: 32), const SizedBox(width: 10), Text(x.name)]),
+              child: Row(
+                children: [CatAvatar.of(x, size: 32), const SizedBox(width: 10), Text(x.name)],
+              ),
             ),
         ],
       ),
     );
     if (target == null) return;
     await repo.deleteCategory(c.id, moveTo: target.id);
-    if (context.mounted) toast(context, '${dg(n)}টি এন্ট্রি "${target.name}"-এ সরানো হয়েছে');
+    if (context.mounted) {
+      toast(
+        context,
+        tr(
+          '${dg(n)}টি এন্ট্রি "${target.name}"-এ সরানো হয়েছে',
+          '${dg(n)} entries moved to "${target.name}"',
+        ),
+      );
+    }
   }
 }

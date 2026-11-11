@@ -10,6 +10,7 @@ import '../../data/database.dart';
 import '../../domain/finance.dart';
 import '../../providers.dart';
 import 'logo.dart';
+import '../../core/i18n.dart';
 
 /// ‹ নভেম্বর ২০২৬ ›
 class MonthSwitcher extends ConsumerWidget {
@@ -26,31 +27,29 @@ class MonthSwitcher extends ConsumerWidget {
       children: [
         IconButton(
           visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.chevron_left),
+          icon: Icon(Icons.chevron_left),
           onPressed: () => n.set(prevMonth(m)),
         ),
         InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => _pickMonth(context, ref, m),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Text(
               monthLabel(m),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.chevron_right),
+          icon: Icon(Icons.chevron_right),
           onPressed: isCurrent ? null : () => n.set(nextMonth(m)),
         ),
         if (!isCurrent && !compact)
           TextButton(
             onPressed: () => n.set(monthStart(DateTime.now())),
-            child: const Text('এ মাস'),
+            child: Text(tr('এ মাস', 'This month')),
           ),
       ],
     );
@@ -72,13 +71,10 @@ Future<DateTime?> showMonthPicker(BuildContext context, DateTime initial) {
       builder: (ctx, setState) => AlertDialog(
         title: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => setState(() => year--),
-            ),
+            IconButton(icon: Icon(Icons.chevron_left), onPressed: () => setState(() => year--)),
             Expanded(child: Center(child: Text(dg(year)))),
             IconButton(
-              icon: const Icon(Icons.chevron_right),
+              icon: Icon(Icons.chevron_right),
               onPressed: year >= now.year ? null : () => setState(() => year++),
             ),
           ],
@@ -92,9 +88,9 @@ Future<DateTime?> showMonthPicker(BuildContext context, DateTime initial) {
             children: [
               for (var i = 1; i <= 12; i++)
                 Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: EdgeInsets.all(4),
                   child: ChoiceChip(
-                    label: Text(bnMonths[i - 1], style: const TextStyle(fontSize: 12)),
+                    label: Text(bnMonths[i - 1], style: TextStyle(fontSize: 12)),
                     selected: initial.year == year && initial.month == i,
                     onSelected: DateTime(year, i).isAfter(now)
                         ? null
@@ -132,14 +128,7 @@ class CatAvatar extends StatelessWidget {
 }
 
 class MoneyText extends StatelessWidget {
-  const MoneyText(
-    this.paisa, {
-    super.key,
-    this.type,
-    this.style,
-    this.signed = false,
-    this.color,
-  });
+  const MoneyText(this.paisa, {super.key, this.type, this.style, this.signed = false, this.color});
   final int paisa;
   final int? type;
   final TextStyle? style;
@@ -152,10 +141,10 @@ class MoneyText extends StatelessWidget {
     final v = type == TxType.expense && signed ? -paisa : paisa;
     return Text(
       money(v, signed: signed),
-      style: (style ?? const TextStyle()).copyWith(
+      style: (style ?? TextStyle()).copyWith(
         color: c,
         fontWeight: FontWeight.w700,
-        fontFeatures: const [FontFeature.tabularFigures()],
+        fontFeatures: [FontFeature.tabularFigures()],
       ),
     );
   }
@@ -194,9 +183,8 @@ class SectionCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title!,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   ?trailing,
@@ -228,24 +216,19 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (emoji != null)
-            Text(emoji!, style: const TextStyle(fontSize: 64))
-          else
-            const AppLogo(size: 88),
-          const SizedBox(height: 16),
+          if (emoji != null) Text(emoji!, style: TextStyle(fontSize: 64)) else AppLogo(size: 88),
+          SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
@@ -253,10 +236,10 @@ class EmptyState extends StatelessWidget {
             ),
           ],
           if (actionLabel != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onAction,
-              icon: const Icon(Icons.add),
+              icon: Icon(Icons.add),
               label: Text(actionLabel!),
             ),
           ],
@@ -287,9 +270,10 @@ class TxnTile extends StatelessWidget {
     final cat = fin.catById[txn.categoryId];
     final person = txn.personId == null ? null : fin.personById[txn.personId];
     final wallet = txn.walletId == null ? null : fin.walletById[txn.walletId];
-    var title = cat?.name ?? 'অজানা';
+    var title = cat?.name ?? tr('অজানা', 'Unknown');
     if (txn.debtAction != null) {
-      title = '${DebtAction.fullLabel(txn.debtAction!)}${person != null ? ' · ${person.name}' : ''}';
+      title =
+          '${DebtAction.fullLabel(txn.debtAction!)}${person != null ? ' · ${person.name}' : ''}';
     }
     final parts = <String>[
       if (showDate) dayLabel(txn.occurredAt),
@@ -301,15 +285,13 @@ class TxnTile extends StatelessWidget {
     final outline = Theme.of(context).colorScheme.outline;
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16),
       leading: CatAvatar.of(cat),
       title: Row(
         children: [
-          Flexible(
-            child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
+          Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)),
           if (txn.photoPath != null) ...[
-            const SizedBox(width: 4),
+            SizedBox(width: 4),
             Icon(Icons.receipt_long, size: 14, color: outline),
           ],
         ],
@@ -346,9 +328,9 @@ void showPhoto(BuildContext context, String path) {
       child: InteractiveViewer(
         child: File(path).existsSync()
             ? Image.file(File(path))
-            : const Padding(
+            : Padding(
                 padding: EdgeInsets.all(32),
-                child: Text('ছবিটি পাওয়া যায়নি'),
+                child: Text(tr('ছবিটি পাওয়া যায়নি', 'Photo not found')),
               ),
       ),
     ),
@@ -365,7 +347,7 @@ Future<bool> confirm(
   BuildContext context,
   String title, {
   String? body,
-  String ok = 'হ্যাঁ',
+  String? ok,
   bool danger = false,
 }) async {
   final r = await showDialog<bool>(
@@ -374,16 +356,11 @@ Future<bool> confirm(
       title: Text(title),
       content: body == null ? null : Text(body),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('বাতিল'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('বাতিল', 'Cancel'))),
         FilledButton(
-          style: danger
-              ? FilledButton.styleFrom(backgroundColor: AppColors.expense)
-              : null,
+          style: danger ? FilledButton.styleFrom(backgroundColor: AppColors.expense) : null,
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(ok),
+          child: Text(ok ?? tr('হ্যাঁ', 'Yes')),
         ),
       ],
     ),
@@ -407,10 +384,7 @@ class StatLine extends StatelessWidget {
         Expanded(child: Text(label)),
         Text(
           value,
-          style: TextStyle(
-            color: color,
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-          ),
+          style: TextStyle(color: color, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
         ),
       ],
     ),

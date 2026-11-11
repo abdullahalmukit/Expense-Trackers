@@ -14,6 +14,7 @@ import '../data/repo.dart';
 import '../domain/finance.dart';
 import 'backup.dart';
 import 'exporter.dart';
+import '../core/i18n.dart';
 
 /// ইমপোর্টের একটি সারি — ক্যাটাগরি/ব্যক্তি/ওয়ালেট নামে, যাতে অন্য ফোনের ডাটাও মেলে
 class ImportRow {
@@ -94,7 +95,12 @@ class Importer {
     if (lower.endsWith('.json')) return _json(bytes);
     if (lower.endsWith('.xlsx')) return _xlsx(bytes);
     if (lower.endsWith('.csv') || lower.endsWith('.txt')) return _csv(bytes);
-    throw const FormatException('এই ফাইল সমর্থিত নয় — JSON, Excel (.xlsx) বা CSV বাছুন');
+    throw FormatException(
+      tr(
+        'এই ফাইল সমর্থিত নয় — JSON, Excel (.xlsx) বা CSV বাছুন',
+        'Unsupported file — choose JSON, Excel (.xlsx) or CSV',
+      ),
+    );
   }
 
   // ---------------- JSON ----------------
@@ -102,10 +108,13 @@ class Importer {
   static ImportBundle _json(Uint8List bytes) {
     final data = jsonDecode(utf8.decode(bytes));
     if (data is! Map || data['format'] != Backup.format) {
-      throw const FormatException('এটি টাকার খাতার ব্যাকআপ ফাইল নয়');
+      throw FormatException(
+        tr('এটি টাকার খাতার ব্যাকআপ ফাইল নয়', 'This is not a Takar Khata backup file'),
+      );
     }
-    List<Map<String, dynamic>> list(String k) =>
-        [for (final e in (data[k] as List? ?? const [])) Map<String, dynamic>.from(e as Map)];
+    List<Map<String, dynamic>> list(String k) => [
+      for (final e in (data[k] as List? ?? const [])) Map<String, dynamic>.from(e as Map),
+    ];
     final cats = list('categories').map(Cat.fromJson).toList();
     final persons = list('persons').map(Person.fromJson).toList();
     final wallets = list('wallets').map(Wallet.fromJson).toList();
@@ -119,13 +128,17 @@ class Importer {
       rows.add(
         ImportRow(
           txn: t,
-          catName: c?.name ?? (m['categoryName'] as String? ?? 'অন্যান্য'),
+          catName: c?.name ?? (m['categoryName'] as String? ?? tr('অন্যান্য', 'Others')),
           catKind: c?.kind ?? (m['categoryKind'] as int? ?? t.type),
           catEmoji: c?.emoji,
           catColor: c?.color,
           catIsDebt: c?.isDebt ?? t.debtAction != null,
-          personName: t.personId == null ? null : (personById[t.personId]?.name ?? m['personName'] as String?),
-          walletName: t.walletId == null ? null : (walletById[t.walletId]?.name ?? m['walletName'] as String?),
+          personName: t.personId == null
+              ? null
+              : (personById[t.personId]?.name ?? m['personName'] as String?),
+          walletName: t.walletId == null
+              ? null
+              : (walletById[t.walletId]?.name ?? m['walletName'] as String?),
         ),
       );
     }
@@ -151,12 +164,17 @@ class Importer {
     var text = utf8.decode(bytes, allowMalformed: true);
     if (text.startsWith('﻿')) text = text.substring(1);
     final table = Csv().decode(text);
-    return _table('csv', [for (final r in table) [for (final c in r) c?.toString() ?? '']]);
+    return _table('csv', [
+      for (final r in table) [for (final c in r) c?.toString() ?? ''],
+    ]);
   }
 
   static ImportBundle _xlsx(Uint8List bytes) {
     final book = xl.Excel.decodeBytes(bytes);
-    final name = book.tables.containsKey('এন্ট্রি') ? 'এন্ট্রি' : book.tables.keys.first;
+    final name = book.tables.keys.firstWhere(
+      (k) => k == tr('এন্ট্রি', 'Entries') || k == 'Entries',
+      orElse: () => book.tables.keys.first,
+    );
     final sheet = book.tables[name]!;
     final table = <List<String>>[];
     for (final row in sheet.rows) {
@@ -181,11 +199,18 @@ class Importer {
     final iso = DateTime.tryParse(t.replaceFirst(' ', 'T'));
     if (iso != null) return iso;
     // dd/mm/yyyy [hh:mm]
-    final m = RegExp(r'^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?').firstMatch(t);
+    final m = RegExp(r'^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?')
+        .firstMatch(t);
     if (m != null) {
       var y = int.parse(m[3]!);
       if (y < 100) y += 2000;
-      return DateTime(y, int.parse(m[2]!), int.parse(m[1]!), int.parse(m[4] ?? '12'), int.parse(m[5] ?? '0'));
+      return DateTime(
+        y,
+        int.parse(m[2]!),
+        int.parse(m[1]!),
+        int.parse(m[4] ?? '12'),
+        int.parse(m[5] ?? '0'),
+      );
     }
     // Excel serial date
     final serial = double.tryParse(t);
@@ -199,15 +224,22 @@ class Importer {
     final t = s.trim().toLowerCase();
     if (t.isEmpty) return null;
     if (t == 'খরচ' || t == 'expense' || t == '0' || t == 'debit') return TxType.expense;
-    if (t == 'জমা' || t == 'income' || t == '1' || t == 'credit' || t == 'আয়') return TxType.income;
+    if (t == 'জমা' || t == 'income' || t == '1' || t == 'credit' || t == 'আয়') {
+      return TxType.income;
+    }
     return null;
   }
 
   static ImportBundle _table(String format, List<List<String>> table) {
-    if (table.isEmpty) throw const FormatException('ফাইলটি খালি');
+    if (table.isEmpty) throw FormatException(tr('ফাইলটি খালি', 'The file is empty'));
     final cols = Cols.resolve(table.first);
     if (!cols.containsKey(Cols.amount) || !cols.containsKey(Cols.date)) {
-      throw const FormatException('কলাম চেনা যায়নি — অন্তত "তারিখ" ও "টাকা" কলাম লাগবে');
+      throw FormatException(
+        tr(
+          'কলাম চেনা যায়নি — অন্তত "তারিখ" ও "টাকা" কলাম লাগবে',
+          'Columns not recognised — at least "date" and "amount" columns are needed',
+        ),
+      );
     }
     String get(List<String> row, String col) {
       final i = cols[col];
@@ -224,7 +256,12 @@ class Importer {
       final date = _parseDate(get(r, Cols.date));
       var amount = parseMoney(get(r, Cols.amount));
       if (date == null || amount == null || amount == 0) {
-        warnings.add('সারি ${dg(i + 1)}: তারিখ বা টাকা বোঝা যায়নি — বাদ');
+        warnings.add(
+          tr(
+            'সারি ${dg(i + 1)}: তারিখ বা টাকা বোঝা যায়নি — বাদ',
+            'Row ${dg(i + 1)}: unreadable date or amount — skipped',
+          ),
+        );
         continue;
       }
       var type = _parseType(get(r, Cols.type));
@@ -237,13 +274,16 @@ class Importer {
       type ??= TxType.expense;
       final person = get(r, Cols.person);
       var catName = get(r, Cols.category);
-      if (catName.isEmpty) catName = debt != null ? 'ধার' : 'অন্যান্য';
+      if (catName.isEmpty) catName = debt != null ? tr('ধার', 'Debt') : tr('অন্যান্য', 'Others');
       final note = get(r, Cols.note);
       final purpose = get(r, Cols.purpose);
       var id = get(r, Cols.id);
       if (id.isEmpty) {
         // একই ফাইল দুবার ইমপোর্ট করলে যাতে ডুপ্লিকেট না হয়
-        id = _uuid.v5(Namespace.url.value, 'takar-khata:${date.toIso8601String()}|$type|$amount|$catName|$note|$person');
+        id = _uuid.v5(
+          Namespace.url.value,
+          'takar-khata:${date.toIso8601String()}|$type|$amount|$catName|$note|$person',
+        );
       }
       rows.add(
         ImportRow(
@@ -282,7 +322,9 @@ class Importer {
     final existing = {for (final t in await db.select(db.transactions).get()) t.id};
     final cats = await db.select(db.categories).get();
     final persons = await db.select(db.persons).get();
-    final catKeys = {for (final c in cats) '${c.kind}|${c.isDebt ? '#debt' : c.name.toLowerCase()}'};
+    final catKeys = {
+      for (final c in cats) '${c.kind}|${c.isDebt ? '#debt' : c.name.toLowerCase()}',
+    };
     final personKeys = {for (final p in persons) p.name.toLowerCase()};
     final newCats = <String>{};
     final newPersons = <String>{};
@@ -325,7 +367,8 @@ class Importer {
           id = await repo.addCategory(
             name: r.catName,
             emoji: r.catEmoji ?? (r.catKind == TxType.expense ? '🏷️' : '💰'),
-            color: r.catColor ?? AppColors.palette[colorIdx++ % AppColors.palette.length].toARGB32(),
+            color:
+                r.catColor ?? AppColors.palette[colorIdx++ % AppColors.palette.length].toARGB32(),
             kind: r.catKind,
           );
         }
@@ -348,16 +391,20 @@ class Importer {
         if (existing.contains(r.txn.id)) continue;
         int? personId;
         if (r.personName != null && r.txn.debtAction != null) {
-          personId = personCache[r.personName!.toLowerCase()] ??= await repo.findOrCreatePerson(r.personName!);
+          personId = personCache[r.personName!.toLowerCase()] ??= await repo.findOrCreatePerson(
+            r.personName!,
+          );
         }
-        await db.into(db.transactions).insert(
-          r.txn.copyWith(
-            categoryId: await catId(r),
-            personId: Value(personId),
-            walletId: Value(await walletId(r.walletName)),
-            debtAction: Value(personId == null ? null : r.txn.debtAction),
-          ),
-        );
+        await db
+            .into(db.transactions)
+            .insert(
+              r.txn.copyWith(
+                categoryId: await catId(r),
+                personId: Value(personId),
+                walletId: Value(await walletId(r.walletName)),
+                debtAction: Value(personId == null ? null : r.txn.debtAction),
+              ),
+            );
         existing.add(r.txn.id);
         added++;
       }
@@ -410,7 +457,7 @@ class Importer {
         await repo.setSetting(e.key, e.value);
       }
       if ((await db.select(db.wallets).get()).isEmpty) {
-        await repo.addWallet('ক্যাশ', '💵', 0);
+        await repo.addWallet(tr('ক্যাশ', 'Cash'), '💵', 0);
       }
       await repo.ensureDebtCategory(TxType.expense);
       await repo.ensureDebtCategory(TxType.income);

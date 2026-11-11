@@ -5,6 +5,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../core/i18n.dart';
+
 /// লোকাল নোটিফিকেশন — দৈনিক রিমাইন্ডার, বাজেট সতর্কতা, ধারের ফেরত-তারিখ, রিকারিং।
 class Notify {
   Notify._();
@@ -17,26 +19,26 @@ class Notify {
   final ValueNotifier<String?> tapped = ValueNotifier(null);
 
   static const _dailyId = 1;
-  static const _channelReminder = AndroidNotificationDetails(
+  static AndroidNotificationDetails get _channelReminder => AndroidNotificationDetails(
     'reminder',
-    'রিমাইন্ডার',
-    channelDescription: 'দৈনিক খরচ লেখার রিমাইন্ডার',
+    tr('রিমাইন্ডার', 'Reminders'),
+    channelDescription: tr('দৈনিক খরচ লেখার রিমাইন্ডার', 'Daily reminder to log spending'),
     importance: Importance.defaultImportance,
     priority: Priority.defaultPriority,
     color: Color(0xFF23308C),
   );
-  static const _channelBudget = AndroidNotificationDetails(
+  static AndroidNotificationDetails get _channelBudget => AndroidNotificationDetails(
     'budget',
-    'বাজেট সতর্কতা',
-    channelDescription: 'বাজেটের ৮০% ও ১০০% পার হলে',
+    tr('বাজেট সতর্কতা', 'Budget alerts'),
+    channelDescription: tr('বাজেটের ৮০% ও ১০০% পার হলে', 'When 80% and 100% of a budget is used'),
     importance: Importance.high,
     priority: Priority.high,
     color: Color(0xFFE5533D),
   );
-  static const _channelDebt = AndroidNotificationDetails(
+  static AndroidNotificationDetails get _channelDebt => AndroidNotificationDetails(
     'debt',
-    'ধারের রিমাইন্ডার',
-    channelDescription: 'ধার শোধ বা ফেরতের তারিখে',
+    tr('ধারের রিমাইন্ডার', 'Debt reminders'),
+    channelDescription: tr('ধার শোধ বা ফেরতের তারিখে', 'On debt repayment or return dates'),
     importance: Importance.high,
     priority: Priority.high,
     color: Color(0xFF7E57C2),
@@ -68,10 +70,8 @@ class Notify {
     }
   }
 
-  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >();
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
   Future<bool> requestPermission() async {
     await init();
@@ -90,10 +90,10 @@ class Notify {
     if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
     await _plugin.zonedSchedule(
       id: _dailyId,
-      title: 'আজকের খরচ লিখেছেন?',
-      body: 'এক ট্যাপে আজকের হিসাব লিখে রাখুন 📒',
+      title: tr('আজকের খরচ লিখেছেন?', 'Logged today\'s spending?'),
+      body: tr('এক ট্যাপে আজকের হিসাব লিখে রাখুন 📒', 'Record today\'s spending in one tap 📒'),
       scheduledDate: at,
-      notificationDetails: const NotificationDetails(android: _channelReminder),
+      notificationDetails: NotificationDetails(android: _channelReminder),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       payload: 'add',
@@ -112,7 +112,7 @@ class Notify {
       id: 1000 + id,
       title: title,
       body: body,
-      notificationDetails: const NotificationDetails(android: _channelBudget),
+      notificationDetails: NotificationDetails(android: _channelBudget),
       payload: 'stats',
     );
   }
@@ -130,7 +130,7 @@ class Notify {
       title: title,
       body: body,
       scheduledDate: at,
-      notificationDetails: const NotificationDetails(android: _channelDebt),
+      notificationDetails: NotificationDetails(android: _channelDebt),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: 'debt',
     );
@@ -148,7 +148,7 @@ class Notify {
       id: id,
       title: title,
       body: body,
-      notificationDetails: const NotificationDetails(android: _channelReminder),
+      notificationDetails: NotificationDetails(android: _channelReminder),
       payload: payload,
     );
   }

@@ -17,6 +17,7 @@ import '../widgets/charts.dart';
 import '../widgets/common.dart';
 import '../widgets/logo.dart';
 import '../widgets/txn_list_sheet.dart';
+import '../../core/i18n.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -41,48 +42,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: const Row(
-          children: [
-            AppLogo(size: 32),
-            SizedBox(width: 10),
-            Text('টাকার খাতা'),
-          ],
+        title: Row(
+          children: [AppLogo(size: 32), SizedBox(width: 10), Text(tr('টাকার খাতা', 'Takar Khata'))],
         ),
         actions: [
           IconButton(
-            tooltip: 'সেটিংস',
+            tooltip: tr('সেটিংস', 'Settings'),
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+            onPressed: () =>
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
         ],
       ),
       body: fin.txns.isEmpty && fin.wallets.every((w) => w.openingBalance == 0)
           ? EmptyState(
-              title: 'স্বাগতম! আপনার হিসাবের খাতা এখনও ফাঁকা',
-              subtitle: 'খরচ, জমা বা ধার — যেকোনো কিছু দিয়ে শুরু করুন। সব ডাটা শুধু এই ফোনেই থাকবে।',
-              actionLabel: 'প্রথম এন্ট্রি যোগ করুন',
+              title: tr(
+                'স্বাগতম! আপনার হিসাবের খাতা এখনও ফাঁকা',
+                'Welcome! Your ledger is still empty',
+              ),
+              subtitle: tr(
+                'খরচ, জমা বা ধার — যেকোনো কিছু দিয়ে শুরু করুন। সব ডাটা শুধু এই ফোনেই থাকবে।',
+                'Start with an expense, income or debt. All data stays on this phone only.',
+              ),
+              actionLabel: tr('প্রথম এন্ট্রি যোগ করুন', 'Add your first entry'),
               onAction: () => showEntrySheet(context),
             )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
               children: [
-                const Center(child: MonthSwitcher()),
+                Center(child: MonthSwitcher()),
                 const SizedBox(height: 8),
                 _SummaryCard(summary: summary),
                 if (fin.wallets.where((w) => !w.archived).length > 1) ...[
                   const SizedBox(height: 12),
                   _WalletStrip(),
                 ],
-                if (insights.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _Insights(insights),
-                ],
+                if (insights.isNotEmpty) ...[const SizedBox(height: 12), _Insights(insights)],
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: 'মাসে এ পর্যন্ত খরচ',
+                  title: tr('মাসে এ পর্যন্ত খরচ', 'Spent so far this month'),
                   child: CumulativeChart(
                     month: month,
                     current: fin.cumulative(month, TxType.expense),
@@ -92,13 +90,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: 'ক্যাটাগরি অনুযায়ী',
+                  title: tr('ক্যাটাগরি অনুযায়ী', 'By category'),
                   trailing: SegmentedButton<int>(
                     showSelectedIcon: false,
-                    style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                    segments: const [
-                      ButtonSegment(value: TxType.expense, label: Text('খরচ')),
-                      ButtonSegment(value: TxType.income, label: Text('জমা')),
+                    style: ButtonStyle(visualDensity: VisualDensity.compact),
+                    segments: [
+                      ButtonSegment(value: TxType.expense, label: Text(tr('খরচ', 'Expense'))),
+                      ButtonSegment(value: TxType.income, label: Text(tr('জমা', 'Income'))),
                     ],
                     selected: {_donutType},
                     onSelectionChanged: (s) => setState(() => _donutType = s.first),
@@ -124,13 +122,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (budgets.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   SectionCard(
-                    title: 'বাজেট',
+                    title: tr('বাজেট', 'Budget'),
                     trailing: TextButton(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const BudgetsScreen()),
                       ),
-                      child: const Text('সাজান'),
+                      child: Text(tr('সাজান', 'Edit')),
                     ),
                     child: Column(
                       children: [
@@ -138,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           BudgetBar(
                             status: b,
                             label: b.categoryId == 0
-                                ? '📊 মোট বাজেট'
+                                ? tr('📊 মোট বাজেট', '📊 Total budget')
                                 : '${fin.catById[b.categoryId]?.emoji} ${fin.catById[b.categoryId]?.name}',
                           ),
                       ],
@@ -148,13 +146,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (goals.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   SectionCard(
-                    title: 'সঞ্চয়ের লক্ষ্য',
+                    title: tr('সঞ্চয়ের লক্ষ্য', 'Savings goals'),
                     trailing: TextButton(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const GoalsScreen()),
                       ),
-                      child: const Text('সব'),
+                      child: Text(tr('সব', 'All')),
                     ),
                     child: SizedBox(
                       height: 120,
@@ -167,19 +165,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
                 const SizedBox(height: 12),
                 SectionCard(
-                  title: 'সাম্প্রতিক',
+                  title: tr('সাম্প্রতিক', 'Recent'),
                   padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
                   trailing: Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: TextButton(
                       onPressed: () => ref.read(tabIndexProvider.notifier).set(1),
-                      child: const Text('সব দেখুন'),
+                      child: Text(tr('সব দেখুন', 'See all')),
                     ),
                   ),
                   child: monthTxns.isEmpty
-                      ? const Padding(
+                      ? Padding(
                           padding: EdgeInsets.all(24),
-                          child: Center(child: Text('এ মাসে এখনও কোনো এন্ট্রি নেই')),
+                          child: Center(
+                            child: Text(
+                              tr('এ মাসে এখনও কোনো এন্ট্রি নেই', 'No entries this month yet'),
+                            ),
+                          ),
                         )
                       : Column(
                           children: [
@@ -221,7 +223,14 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: c),
                 const SizedBox(width: 4),
-                Text(label, style: TextStyle(color: dim, fontSize: 12)),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: dim, fontSize: 12),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -245,13 +254,17 @@ class _SummaryCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: AppColors.brand.withValues(alpha: .3), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(
+            color: AppColors.brand.withValues(alpha: .3),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('মাস শেষের ব্যালেন্স', style: TextStyle(color: dim)),
+          Text(tr('মাস শেষের ব্যালেন্স', 'Month-end balance'), style: TextStyle(color: dim)),
           const SizedBox(height: 2),
           FittedBox(
             child: Text(
@@ -260,21 +273,37 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           Text(
-            'শুরুর ব্যালেন্স ${money(summary.opening)} (আগের মাস থেকে)',
+            tr(
+              'শুরুর ব্যালেন্স ${money(summary.opening)} (আগের মাস থেকে)',
+              'Opening balance ${money(summary.opening)} (carried over)',
+            ),
             style: TextStyle(color: dim, fontSize: 12),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              stat('মোট জমা', summary.income, const Color(0xFF8FF0B4), Icons.south_west),
+              stat(
+                tr('মোট জমা', 'Total income'),
+                summary.income,
+                const Color(0xFF8FF0B4),
+                Icons.south_west,
+              ),
               const SizedBox(width: 10),
-              stat('মোট খরচ', summary.expense, const Color(0xFFFFB4A6), Icons.north_east),
+              stat(
+                tr('মোট খরচ', 'Total expense'),
+                summary.expense,
+                const Color(0xFFFFB4A6),
+                Icons.north_east,
+              ),
             ],
           ),
           if (summary.debtIncome > 0 || summary.debtExpense > 0) ...[
             const SizedBox(height: 10),
             Text(
-              'ধার সহ · ধার ছাড়া আসল জমা ${money(summary.realIncome)}, খরচ ${money(summary.realExpense)}',
+              tr(
+                'ধার সহ · ধার ছাড়া আসল জমা ${money(summary.realIncome)}, খরচ ${money(summary.realExpense)}',
+                'Incl. debt · without debt: income ${money(summary.realIncome)}, expense ${money(summary.realExpense)}',
+              ),
               style: TextStyle(color: dim, fontSize: 11.5),
             ),
           ],
@@ -315,7 +344,10 @@ class _WalletStrip extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(w.name, style: const TextStyle(fontSize: 12)),
-                            Text(money(bal[w.id] ?? 0), style: const TextStyle(fontWeight: FontWeight.w800)),
+                            Text(
+                              money(bal[w.id] ?? 0),
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
                           ],
                         ),
                       ],

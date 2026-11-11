@@ -7,13 +7,10 @@ import '../../domain/finance.dart';
 import '../../providers.dart';
 import '../entry/entry_sheet.dart';
 import 'common.dart';
+import '../../core/i18n.dart';
 
 /// চার্টের কোনো অংশে ট্যাপ করলে সেই অংশের এন্ট্রিগুলো
-Future<void> showTxnListSheet(
-  BuildContext context,
-  String title,
-  bool Function(Txn) filter,
-) {
+Future<void> showTxnListSheet(BuildContext context, String title, bool Function(Txn) filter) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -39,9 +36,9 @@ Future<void> showTxnListSheet(
                     Text(title, style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 4),
                     Text(
-                      '${dg(list.length)}টি এন্ট্রি'
-                      '${exp > 0 ? ' · খরচ ${money(exp)}' : ''}'
-                      '${inc > 0 ? ' · জমা ${money(inc)}' : ''}',
+                      tr('${dg(list.length)}টি এন্ট্রি', '${dg(list.length)} entries') +
+                          (exp > 0 ? tr(' · খরচ ${money(exp)}', ' · spent ${money(exp)}') : '') +
+                          (inc > 0 ? tr(' · জমা ${money(inc)}', ' · income ${money(inc)}') : ''),
                       style: TextStyle(color: Theme.of(context).colorScheme.outline),
                     ),
                   ],
@@ -49,7 +46,7 @@ Future<void> showTxnListSheet(
               ),
               Expanded(
                 child: list.isEmpty
-                    ? const Center(child: Text('কোনো এন্ট্রি নেই'))
+                    ? Center(child: Text(tr('কোনো এন্ট্রি নেই', 'No entries')))
                     : ListView.builder(
                         controller: controller,
                         itemCount: list.length,

@@ -6,14 +6,10 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../widgets/common.dart';
 import '../widgets/emoji_pick.dart';
+import '../../core/i18n.dart';
 
 /// নতুন ক্যাটাগরি বা এডিট — নাম, ইমোজি, রং আর ধরন। নতুন হলে id ফেরত দেয়।
-Future<int?> showCategoryEditor(
-  BuildContext context,
-  WidgetRef ref, {
-  Cat? cat,
-  int kind = 0,
-}) {
+Future<int?> showCategoryEditor(BuildContext context, WidgetRef ref, {Cat? cat, int kind = 0}) {
   return showModalBottomSheet<int>(
     context: context,
     isScrollControlled: true,
@@ -45,23 +41,16 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
   Future<void> _save() async {
     final name = _name.text.trim();
     if (name.isEmpty) {
-      toast(context, 'নাম লিখুন');
+      toast(context, tr('নাম লিখুন', 'Enter a name'));
       return;
     }
     final repo = ref.read(repoProvider);
     final c = widget.cat;
     if (c == null) {
-      final id = await repo.addCategory(
-        name: name,
-        emoji: _emoji,
-        color: _color,
-        kind: _kind,
-      );
+      final id = await repo.addCategory(name: name, emoji: _emoji, color: _color, kind: _kind);
       if (mounted) Navigator.pop(context, id);
     } else {
-      await repo.updateCategory(
-        c.copyWith(name: name, emoji: _emoji, color: _color),
-      );
+      await repo.updateCategory(c.copyWith(name: name, emoji: _emoji, color: _color));
       if (mounted) Navigator.pop(context, c.id);
     }
   }
@@ -80,7 +69,7 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            editing ? 'ক্যাটাগরি এডিট' : 'নতুন ক্যাটাগরি',
+            editing ? tr('ক্যাটাগরি এডিট', 'Edit category') : tr('নতুন ক্যাটাগরি', 'New category'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
@@ -99,7 +88,7 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
                 child: TextField(
                   controller: _name,
                   autofocus: !editing,
-                  decoration: const InputDecoration(labelText: 'নাম'),
+                  decoration: InputDecoration(labelText: tr('নাম', 'Name')),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _save(),
                 ),
@@ -108,7 +97,7 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
           ),
           const SizedBox(height: 4),
           Text(
-            'ইমোজিতে ট্যাপ করে বদলান',
+            tr('ইমোজিতে ট্যাপ করে বদলান', 'Tap the emoji to change it'),
             style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
           ),
           const SizedBox(height: 16),
@@ -126,28 +115,25 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
                       color: c,
                       shape: BoxShape.circle,
                       border: _color == c.toARGB32()
-                          ? Border.all(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              width: 3,
-                            )
+                          ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3)
                           : null,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (!editing)
             SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('খরচ')),
-                ButtonSegment(value: 1, label: Text('জমা')),
+              segments: [
+                ButtonSegment(value: 0, label: Text(tr('খরচ', 'Expense'))),
+                ButtonSegment(value: 1, label: Text(tr('জমা', 'Income'))),
               ],
               selected: {_kind},
               onSelectionChanged: (s) => setState(() => _kind = s.first),
             ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _save, child: const Text('সেভ')),
+          FilledButton(onPressed: _save, child: Text(tr('সেভ', 'Save'))),
         ],
       ),
     );

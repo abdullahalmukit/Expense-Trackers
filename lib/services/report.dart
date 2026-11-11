@@ -13,6 +13,7 @@ import '../data/database.dart';
 import '../domain/finance.dart';
 import '../ui/widgets/charts.dart';
 import '../ui/widgets/logo.dart';
+import '../core/i18n.dart';
 
 /// PDF রিপোর্ট। বাংলা যুক্তাক্ষর ঠিকভাবে দেখাতে প্রতিটি পাতা Flutter দিয়ে আঁকা হয়,
 /// তারপর ছবি হিসেবে PDF-এ বসানো হয় — চার্টও হুবহু অ্যাপের মতো।
@@ -23,10 +24,14 @@ class PdfReport {
   static Future<Uint8List> build(FinanceData fin, DateRange? r) async {
     final txns = (r == null ? [...fin.txns] : fin.inRange(r).toList())
       ..sort((a, b) => a.occurredAt.compareTo(b.occurredAt));
-    final months = r?.months ??
+    final months =
+        r?.months ??
         (txns.isEmpty
             ? [monthStart(DateTime.now())]
-            : DateRange(monthStart(txns.first.occurredAt), nextMonth(monthStart(txns.last.occurredAt))).months);
+            : DateRange(
+                monthStart(txns.first.occurredAt),
+                nextMonth(monthStart(txns.last.occurredAt)),
+              ).months);
 
     final pages = <Widget>[];
     var pageNo = 0;
@@ -36,7 +41,11 @@ class PdfReport {
     }
 
     if (months.length > 1) {
-      pages.add(frame(_OverviewPage(fin: fin, months: months, label: r?.label ?? 'সব সময়')));
+      pages.add(
+        frame(
+          _OverviewPage(fin: fin, months: months, label: r?.label ?? tr('সব সময়', 'All time')),
+        ),
+      );
     }
     for (final m in months) {
       final range = DateRange.month(m);
@@ -45,13 +54,18 @@ class PdfReport {
       pages.add(frame(_MonthSummaryPage(fin: fin, month: m)));
       for (var i = 0; i < list.length; i += _rowsPerPage) {
         final chunk = list.sublist(i, (i + _rowsPerPage).clamp(0, list.length));
-        pages.add(frame(_EntriesPage(fin: fin, month: m, rows: chunk, startIndex: i, total: list.length)));
+        pages.add(
+          frame(_EntriesPage(fin: fin, month: m, rows: chunk, startIndex: i, total: list.length)),
+        );
       }
     }
     final debts = fin.debts().where((d) => !d.settled).toList();
     if (debts.isNotEmpty) pages.add(frame(_DebtPage(debts: debts)));
 
-    final doc = pw.Document(title: 'টাকার খাতা রিপোর্ট', creator: 'টাকার খাতা');
+    final doc = pw.Document(
+      title: tr('টাকার খাতা রিপোর্ট', 'Takar Khata report'),
+      creator: tr('টাকার খাতা', 'Takar Khata'),
+    );
     final oldAnim = ChartAnim.duration;
     ChartAnim.duration = Duration.zero;
     try {
@@ -140,10 +154,16 @@ class _Page extends StatelessWidget {
           children: [
             const AppLogo(size: 26),
             const SizedBox(width: 8),
-            const Text('টাকার খাতা', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.brand)),
+            Text(
+              tr('টাকার খাতা', 'Takar Khata'),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.brand),
+            ),
             const Spacer(),
             Text(
-              'তৈরি: ${dateTimeLabel(DateTime.now())}',
+              tr(
+                'তৈরি: ${dateTimeLabel(DateTime.now())}',
+                'Generated: ${dateTimeLabel(DateTime.now())}',
+              ),
               style: const TextStyle(fontSize: 9, color: Colors.black54),
             ),
           ],
@@ -152,14 +172,18 @@ class _Page extends StatelessWidget {
         Expanded(child: child),
         Align(
           alignment: Alignment.centerRight,
-          child: Text('পৃষ্ঠা ${dg(pageNo)}', style: const TextStyle(fontSize: 9, color: Colors.black54)),
+          child: Text(
+            tr('পৃষ্ঠা ${dg(pageNo)}', 'Page ${dg(pageNo)}'),
+            style: const TextStyle(fontSize: 9, color: Colors.black54),
+          ),
         ),
       ],
     ),
   );
 }
 
-TextStyle get _h1 => const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.brand);
+TextStyle get _h1 =>
+    const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.brand);
 TextStyle get _h2 => const TextStyle(fontSize: 13, fontWeight: FontWeight.w800);
 
 Widget _kv(String k, String v, {Color? color, bool bold = false}) => Padding(
@@ -167,7 +191,14 @@ Widget _kv(String k, String v, {Color? color, bool bold = false}) => Padding(
   child: Row(
     children: [
       Expanded(child: Text(k, style: const TextStyle(fontSize: 11))),
-      Text(v, style: TextStyle(fontSize: 11, color: color, fontWeight: bold ? FontWeight.w900 : FontWeight.w700)),
+      Text(
+        v,
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+        ),
+      ),
     ],
   ),
 );
@@ -187,7 +218,10 @@ class _MonthSummaryPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('মাসিক রিপোর্ট · ${monthLabel(month)}', style: _h1),
+        Text(
+          tr('মাসিক রিপোর্ট · ${monthLabel(month)}', 'Monthly report · ${monthLabel(month)}'),
+          style: _h1,
+        ),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(12),
@@ -200,9 +234,17 @@ class _MonthSummaryPage extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    _kv('শুরুর ব্যালেন্স', money(s.opening)),
-                    _kv('মোট জমা (ধার সহ)', money(s.income), color: AppColors.income),
-                    _kv('মোট খরচ (ধার সহ)', money(s.expense), color: AppColors.expense),
+                    _kv(tr('শুরুর ব্যালেন্স', 'Opening balance'), money(s.opening)),
+                    _kv(
+                      tr('মোট জমা (ধার সহ)', 'Total income (incl. debt)'),
+                      money(s.income),
+                      color: AppColors.income,
+                    ),
+                    _kv(
+                      tr('মোট খরচ (ধার সহ)', 'Total expense (incl. debt)'),
+                      money(s.expense),
+                      color: AppColors.expense,
+                    ),
                   ],
                 ),
               ),
@@ -210,9 +252,14 @@ class _MonthSummaryPage extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    _kv('ধার ছাড়া আসল জমা', money(s.realIncome)),
-                    _kv('ধার ছাড়া আসল খরচ', money(s.realExpense)),
-                    _kv('মাস শেষের ব্যালেন্স', money(s.closing), bold: true, color: AppColors.brand),
+                    _kv(tr('ধার ছাড়া আসল জমা', 'Income excl. debt'), money(s.realIncome)),
+                    _kv(tr('ধার ছাড়া আসল খরচ', 'Expense excl. debt'), money(s.realExpense)),
+                    _kv(
+                      tr('মাস শেষের ব্যালেন্স', 'Month-end balance'),
+                      money(s.closing),
+                      bold: true,
+                      color: AppColors.brand,
+                    ),
                   ],
                 ),
               ),
@@ -220,7 +267,7 @@ class _MonthSummaryPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Text('ক্যাটাগরিভিত্তিক খরচ', style: _h2),
+        Text(tr('ক্যাটাগরিভিত্তিক খরচ', 'Spending by category'), style: _h2),
         const SizedBox(height: 6),
         SizedBox(
           height: 150,
@@ -229,15 +276,24 @@ class _MonthSummaryPage extends StatelessWidget {
             maxLegend: 8,
             slices: [
               for (final e in cats)
-                Slice(e.key, fin.catById[e.key]?.name ?? '?', fin.catById[e.key]?.emoji ?? '', e.value,
-                    Color(fin.catById[e.key]?.color ?? 0xFF9E9E9E)),
+                Slice(
+                  e.key,
+                  fin.catById[e.key]?.name ?? '?',
+                  fin.catById[e.key]?.emoji ?? '',
+                  e.value,
+                  Color(fin.catById[e.key]?.color ?? 0xFF9E9E9E),
+                ),
             ],
           ),
         ),
         const SizedBox(height: 10),
         if (cats.isNotEmpty)
           Table(
-            columnWidths: const {0: FlexColumnWidth(3), 1: FlexColumnWidth(1.4), 2: FlexColumnWidth(1)},
+            columnWidths: const {
+              0: FlexColumnWidth(3),
+              1: FlexColumnWidth(1.4),
+              2: FlexColumnWidth(1),
+            },
             border: TableBorder(horizontalInside: BorderSide(color: Colors.grey.shade300)),
             children: [
               for (final e in cats.take(10))
@@ -245,16 +301,27 @@ class _MonthSummaryPage extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Text('${fin.catById[e.key]?.emoji ?? ''} ${fin.catById[e.key]?.name ?? ''}', style: const TextStyle(fontSize: 10.5)),
+                      child: Text(
+                        '${fin.catById[e.key]?.emoji ?? ''} ${fin.catById[e.key]?.name ?? ''}',
+                        style: const TextStyle(fontSize: 10.5),
+                      ),
                     ),
-                    Text(money(e.value), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700)),
-                    Text(percent(e.value / total * 100), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5)),
+                    Text(
+                      money(e.value),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      percent(e.value / total * 100),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 10.5),
+                    ),
                   ],
                 ),
             ],
           ),
         const SizedBox(height: 12),
-        Text('দৈনিক খরচ', style: _h2),
+        Text(tr('দৈনিক খরচ', 'Daily spending'), style: _h2),
         const SizedBox(height: 6),
         DailyBarChart(values: fin.dailyTotals(r, TxType.expense), start: r.start, height: 150),
         const Spacer(),
@@ -284,10 +351,16 @@ class _EntriesPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('${monthLabel(month)} · এন্ট্রির তালিকা (${dg(startIndex + 1)}–${dg(startIndex + rows.length)} / ${dg(total)})', style: _h2),
-        const SizedBox(height: 8),
+        Text(
+          tr(
+            '${monthLabel(month)} · এন্ট্রির তালিকা (${dg(startIndex + 1)}–${dg(startIndex + rows.length)} / ${dg(total)})',
+            '${monthLabel(month)} · entries (${dg(startIndex + 1)}–${dg(startIndex + rows.length)} / ${dg(total)})',
+          ),
+          style: _h2,
+        ),
+        SizedBox(height: 8),
         Table(
-          columnWidths: const {
+          columnWidths: {
             0: FlexColumnWidth(1.6),
             1: FlexColumnWidth(2.2),
             2: FlexColumnWidth(3),
@@ -297,11 +370,23 @@ class _EntriesPage extends StatelessWidget {
           children: [
             TableRow(
               decoration: BoxDecoration(color: AppColors.brandAccent.withValues(alpha: .35)),
-              children: const [
-                Padding(padding: EdgeInsets.all(4), child: Text('তারিখ', style: head)),
-                Padding(padding: EdgeInsets.all(4), child: Text('ক্যাটাগরি', style: head)),
-                Padding(padding: EdgeInsets.all(4), child: Text('বিবরণ', style: head)),
-                Padding(padding: EdgeInsets.all(4), child: Text('টাকা', style: head, textAlign: TextAlign.right)),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Text(tr('তারিখ', 'Date'), style: head),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Text(tr('ক্যাটাগরি', 'Category'), style: head),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Text(tr('বিবরণ', 'Note'), style: head),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Text(tr('টাকা', 'Amount'), style: head, textAlign: TextAlign.right),
+                ),
               ],
             ),
             for (final t in rows)
@@ -309,7 +394,10 @@ class _EntriesPage extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(4),
-                    child: Text('${dayLabel(t.occurredAt)}\n${timeLabel(t.occurredAt)}', style: cell),
+                    child: Text(
+                      '${dayLabel(t.occurredAt)}\n${timeLabel(t.occurredAt)}',
+                      style: cell,
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(4),
@@ -363,35 +451,65 @@ class _OverviewPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('সারাংশ · $label', style: _h1),
+        Text(tr('সারাংশ · $label', 'Summary · $label'), style: _h1),
         const SizedBox(height: 10),
-        _kv('মোট জমা', money(inc), color: AppColors.income),
-        _kv('মোট খরচ', money(exp), color: AppColors.expense),
-        _kv('সঞ্চয়', money(inc - exp), bold: true),
-        _kv('বর্তমান ব্যালেন্স', money(fin.currentBalance)),
+        _kv(tr('মোট জমা', 'Total income'), money(inc), color: AppColors.income),
+        _kv(tr('মোট খরচ', 'Total expense'), money(exp), color: AppColors.expense),
+        _kv(tr('সঞ্চয়', 'Savings'), money(inc - exp), bold: true),
+        _kv(tr('বর্তমান ব্যালেন্স', 'Current balance'), money(fin.currentBalance)),
         const SizedBox(height: 14),
-        Text('মাসিক ট্রেন্ড', style: _h2),
+        Text(tr('মাসিক ট্রেন্ড', 'Monthly trend'), style: _h2),
         const SizedBox(height: 6),
         TrendChart(series: series, height: 200),
         const SizedBox(height: 14),
         Table(
           border: TableBorder(horizontalInside: BorderSide(color: Colors.grey.shade300)),
           children: [
-            const TableRow(
+            TableRow(
               children: [
-                Text('মাস', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                Text('জমা', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                Text('খরচ', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                Text('সঞ্চয়', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+                Text(
+                  tr('মাস', 'Month'),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  tr('জমা', 'Income'),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  tr('খরচ', 'Expense'),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  tr('সঞ্চয়', 'Savings'),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                ),
               ],
             ),
             for (final m in series.length > 18 ? series.sublist(series.length - 18) : series)
               TableRow(
                 children: [
-                  Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Text(monthLabel(m.month), style: const TextStyle(fontSize: 10))),
-                  Text(money(m.income), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10)),
-                  Text(money(m.expense), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10)),
-                  Text(money(m.saving), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(monthLabel(m.month), style: const TextStyle(fontSize: 10)),
+                  ),
+                  Text(
+                    money(m.income),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    money(m.expense),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    money(m.saving),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 10),
+                  ),
                 ],
               ),
           ],
@@ -409,16 +527,28 @@ class _DebtPage extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('বাকি ধার (আজ পর্যন্ত)', style: _h1.copyWith(color: AppColors.debt)),
+      Text(
+        tr('বাকি ধার (আজ পর্যন্ত)', 'Outstanding debts (as of today)'),
+        style: _h1.copyWith(color: AppColors.debt),
+      ),
       const SizedBox(height: 10),
-      _kv('মোট আমি দেব', money(debts.fold(0, (s, d) => s + (d.payable > 0 ? d.payable : 0))), color: AppColors.expense),
-      _kv('মোট আমি পাব', money(debts.fold(0, (s, d) => s + (d.receivable > 0 ? d.receivable : 0))), color: AppColors.income),
+      _kv(
+        tr('মোট আমি দেব', 'Total I owe'),
+        money(debts.fold(0, (s, d) => s + (d.payable > 0 ? d.payable : 0))),
+        color: AppColors.expense,
+      ),
+      _kv(
+        tr('মোট আমি পাব', 'Total owed to me'),
+        money(debts.fold(0, (s, d) => s + (d.receivable > 0 ? d.receivable : 0))),
+        color: AppColors.income,
+      ),
       const SizedBox(height: 10),
       HBarList(
         items: [
           for (final d in debts) ...[
             if (d.payable > 0) HBarItem(d.person.id, d.person.name, d.payable, AppColors.expense),
-            if (d.receivable > 0) HBarItem(d.person.id, d.person.name, d.receivable, AppColors.income),
+            if (d.receivable > 0)
+              HBarItem(d.person.id, d.person.name, d.receivable, AppColors.income),
           ],
         ],
       ),

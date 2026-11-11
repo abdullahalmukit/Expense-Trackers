@@ -133,8 +133,7 @@ class Settings extends Table {
   ],
 )
 class AppDb extends _$AppDb {
-  AppDb([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'takar_khata'));
+  AppDb([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'takar_khata'));
 
   @override
   int get schemaVersion => 1;

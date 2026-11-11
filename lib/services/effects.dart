@@ -7,6 +7,7 @@ import '../data/repo.dart';
 import '../domain/finance.dart';
 import 'home_widget_service.dart';
 import 'notifications.dart';
+import '../core/i18n.dart';
 
 /// এন্ট্রি সেভ/ডিলিটের পরের কাজ: বাজেট সতর্কতা, ধারের রিমাইন্ডার, উইজেট আপডেট।
 class Effects {
@@ -51,7 +52,7 @@ class Effects {
     for (final st in fin.budgetStatuses(month)) {
       if (st.categoryId != 0 && st.categoryId != t.categoryId) continue;
       final name = st.categoryId == 0
-          ? 'মোট'
+          ? tr('মোট', 'Total')
           : (fin.catById[st.categoryId]?.name ?? '');
       for (final level in const [100, 80]) {
         if (st.ratio * 100 < level) continue;
@@ -61,14 +62,23 @@ class Effects {
         if (level == 100) {
           await Notify.instance.budgetAlert(
             st.categoryId,
-            '🚨 $name বাজেট শেষ!',
-            'এ মাসে ${money(st.spent)} খরচ হয়েছে, বাজেট ছিল ${money(st.limit)}',
+            tr('🚨 $name বাজেট শেষ!', '🚨 $name budget used up!'),
+            tr(
+              'এ মাসে ${money(st.spent)} খরচ হয়েছে, বাজেট ছিল ${money(st.limit)}',
+              'Spent ${money(st.spent)} this month, budget was ${money(st.limit)}',
+            ),
           );
         } else {
           await Notify.instance.budgetAlert(
             st.categoryId,
-            '⚠️ $name বাজেটের ${percent(st.ratio * 100)} শেষ',
-            'বাকি আছে ${money(math.max(0, st.limit - st.spent))}',
+            tr(
+              '⚠️ $name বাজেটের ${percent(st.ratio * 100)} শেষ',
+              '⚠️ ${percent(st.ratio * 100)} of $name budget used',
+            ),
+            tr(
+              'বাকি আছে ${money(math.max(0, st.limit - st.spent))}',
+              '${money(math.max(0, st.limit - st.spent))} left',
+            ),
           );
         }
         break;
@@ -86,15 +96,21 @@ class Effects {
       await Notify.instance.scheduleDebt(
         t.id,
         due,
-        '⏰ আজ $p-কে ধার শোধের দিন',
-        '${money(t.amount)} নিয়েছিলেন ${dayLabel(t.occurredAt)}',
+        tr('⏰ আজ $p-কে ধার শোধের দিন', '⏰ Today you\'re due to repay $p'),
+        tr(
+          '${money(t.amount)} নিয়েছিলেন ${dayLabel(t.occurredAt)}',
+          'Borrowed ${money(t.amount)} on ${dayLabel(t.occurredAt)}',
+        ),
       );
     } else if (a == DebtAction.lend) {
       await Notify.instance.scheduleDebt(
         t.id,
         due,
-        '⏰ আজ $p-এর কাছ থেকে টাকা ফেরত পাওয়ার দিন',
-        '${money(t.amount)} দিয়েছিলেন ${dayLabel(t.occurredAt)}',
+        tr('⏰ আজ $p-এর কাছ থেকে টাকা ফেরত পাওয়ার দিন', '⏰ Today $p is due to pay you back'),
+        tr(
+          '${money(t.amount)} দিয়েছিলেন ${dayLabel(t.occurredAt)}',
+          'Lent ${money(t.amount)} on ${dayLabel(t.occurredAt)}',
+        ),
       );
     }
   }

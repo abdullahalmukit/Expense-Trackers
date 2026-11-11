@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../core/dates.dart';
 import '../data/database.dart';
 import 'files.dart';
+import '../core/i18n.dart';
 
 /// JSON পূর্ণ ব্যাকআপ — সব এন্ট্রি, ক্যাটাগরি (ইমোজি-রং সহ), ব্যক্তি, ওয়ালেট, বাজেট, সেটিংস।
 /// ইমপোর্ট করলে হুবহু ফিরে আসে।
@@ -36,7 +37,7 @@ class Backup {
     return {
       'format': format,
       'version': version,
-      'app': 'টাকার খাতা',
+      'app': tr('টাকার খাতা', 'Takar Khata'),
       'exportedAt': DateTime.now().toIso8601String(),
       if (range != null)
         'range': {'start': range.start.toIso8601String(), 'end': range.end.toIso8601String()},
@@ -47,7 +48,10 @@ class Backup {
       'budgets': [for (final b in await db.select(db.budgets).get()) b.toJson()],
       'goals': [for (final g in await db.select(db.goals).get()) g.toJson()],
       'recurrings': [for (final r in await db.select(db.recurrings).get()) r.toJson()],
-      'settings': {for (final s in settings) if (!_skipSetting(s.key)) s.key: s.value},
+      'settings': {
+        for (final s in settings)
+          if (!_skipSetting(s.key)) s.key: s.value,
+      },
       'transactions': [
         for (final t in txns)
           {
@@ -97,7 +101,9 @@ class Backup {
     if (!await dir.exists()) return [];
     final files = await dir
         .list()
-        .where((e) => e is File && p.basename(e.path).startsWith(prefix) && e.path.endsWith('.json'))
+        .where(
+          (e) => e is File && p.basename(e.path).startsWith(prefix) && e.path.endsWith('.json'),
+        )
         .cast<File>()
         .toList();
     files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));

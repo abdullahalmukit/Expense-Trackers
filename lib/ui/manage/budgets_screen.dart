@@ -7,6 +7,7 @@ import '../../domain/finance.dart';
 import '../../providers.dart';
 import '../home/home_screen.dart';
 import '../widgets/common.dart';
+import '../../core/i18n.dart';
 
 /// ক্যাটাগরিভিত্তিক মাসিক সীমা — ৮০% আর ১০০% পার হলে নোটিফিকেশন
 class BudgetsScreen extends ConsumerWidget {
@@ -26,7 +27,7 @@ class BudgetsScreen extends ConsumerWidget {
         leading: leading,
         title: Text(label),
         subtitle: limit == null
-            ? Text('বাজেট নেই · খরচ ${money(spent)}')
+            ? Text(tr('বাজেট নেই · খরচ ${money(spent)}', 'No budget · spent ${money(spent)}'))
             : BudgetBar(status: BudgetStatus(id, limit, spent), label: ''),
         trailing: const Icon(Icons.edit_outlined, size: 20),
         onTap: () => _edit(context, ref, month, id, label, limit),
@@ -34,19 +35,27 @@ class BudgetsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('মাসিক বাজেট')),
+      appBar: AppBar(title: Text(tr('মাসিক বাজেট', 'Monthly budget'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 60),
         children: [
-          const Center(child: MonthSwitcher()),
+          Center(child: MonthSwitcher()),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Text(
-              'যে মাসে সেট করবেন সেই মাস থেকে পরের সব মাসে প্রযোজ্য থাকবে, যতক্ষণ না বদলান।',
+              tr(
+                'যে মাসে সেট করবেন সেই মাস থেকে পরের সব মাসে প্রযোজ্য থাকবে, যতক্ষণ না বদলান।',
+                'A budget applies from the month you set it to every later month, until you change it.',
+              ),
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          row(0, 'মোট বাজেট', const CircleAvatar(child: Text('📊')), totalSpent),
+          row(
+            0,
+            tr('মোট বাজেট', 'Total budget'),
+            const CircleAvatar(child: Text('📊')),
+            totalSpent,
+          ),
           const Divider(),
           for (final c in cats) row(c.id, c.name, CatAvatar.of(c), totals[c.id] ?? 0),
         ],
@@ -54,22 +63,33 @@ class BudgetsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, DateTime month, int id, String label, int? current) async {
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime month,
+    int id,
+    String label,
+    int? current,
+  ) async {
     final c = TextEditingController(text: current == null ? '' : paisaToPlain(current));
     final r = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('$label · ${monthLabel(month)} থেকে'),
+        title: Text(tr('$label · ${monthLabel(month)} থেকে', '$label · from ${monthLabel(month)}')),
         content: TextField(
           controller: c,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'মাসিক সীমা ৳'),
+          decoration: InputDecoration(labelText: tr('মাসিক সীমা ৳', 'Monthly limit ৳')),
         ),
         actions: [
-          if (current != null) TextButton(onPressed: () => Navigator.pop(ctx, 'clear'), child: const Text('বাজেট বাদ')),
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('বাতিল')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, 'save'), child: const Text('সেভ')),
+          if (current != null)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'clear'),
+              child: Text(tr('বাজেট বাদ', 'Remove budget')),
+            ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('বাতিল', 'Cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, 'save'), child: Text(tr('সেভ', 'Save'))),
         ],
       ),
     );

@@ -9,11 +9,9 @@ import 'providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDb();
-  await Repo(db).seedIfNeeded();
-  runApp(
-    ProviderScope(
-      overrides: [dbProvider.overrideWithValue(db)],
-      child: const TakaApp(),
-    ),
-  );
+  // ভাষা আগে বাছাই করা থাকলে সেই ভাষায় ডিফল্ট ক্যাটাগরি; না থাকলে ভাষা বাছাইয়ের পরে
+  final repo = Repo(db);
+  final lang = await repo.getSetting('lang');
+  if (lang != null) await repo.seedIfNeeded(en: lang == 'en');
+  runApp(ProviderScope(overrides: [dbProvider.overrideWithValue(db)], child: const TakaApp()));
 }

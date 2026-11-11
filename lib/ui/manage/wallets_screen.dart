@@ -7,6 +7,7 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../widgets/common.dart';
 import '../widgets/emoji_pick.dart';
+import '../../core/i18n.dart';
 
 /// ক্যাশ, bKash, Nagad, ব্যাংক — আলাদা ব্যালেন্স আর ট্রান্সফার
 class WalletsScreen extends ConsumerWidget {
@@ -19,12 +20,13 @@ class WalletsScreen extends ConsumerWidget {
     final transfers = ref.watch(transfersProvider).value ?? const <Transfer>[];
     final total = bal.values.fold(0, (s, v) => s + v);
     return Scaffold(
-      appBar: AppBar(title: const Text('ওয়ালেট')),
+      appBar: AppBar(title: Text(tr('ওয়ালেট', 'Wallets'))),
       floatingActionButton: fin.wallets.where((w) => !w.archived).length >= 2
           ? FloatingActionButton.extended(
-              onPressed: () => _transfer(context, ref, fin.wallets.where((w) => !w.archived).toList()),
+              onPressed: () =>
+                  _transfer(context, ref, fin.wallets.where((w) => !w.archived).toList()),
               icon: const Icon(Icons.swap_horiz),
-              label: const Text('ট্রান্সফার'),
+              label: Text(tr('ট্রান্সফার', 'Transfer')),
             )
           : null,
       body: ListView(
@@ -32,8 +34,11 @@ class WalletsScreen extends ConsumerWidget {
         children: [
           Card(
             child: ListTile(
-              title: const Text('সব ওয়ালেটে মোট'),
-              trailing: Text(money(total), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+              title: Text(tr('সব ওয়ালেটে মোট', 'Total across wallets')),
+              trailing: Text(
+                money(total),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -43,14 +48,22 @@ class WalletsScreen extends ConsumerWidget {
                 for (final w in fin.wallets)
                   ListTile(
                     leading: Text(w.emoji, style: const TextStyle(fontSize: 28)),
-                    title: Text(w.name + (w.archived ? ' (লুকানো)' : '')),
-                    subtitle: Text('শুরুর ব্যালেন্স ${money(w.openingBalance)}'),
-                    trailing: Text(money(bal[w.id] ?? 0), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    title: Text(w.name + (w.archived ? tr(' (লুকানো)', ' (hidden)') : '')),
+                    subtitle: Text(
+                      tr(
+                        'শুরুর ব্যালেন্স ${money(w.openingBalance)}',
+                        'Opening balance ${money(w.openingBalance)}',
+                      ),
+                    ),
+                    trailing: Text(
+                      money(bal[w.id] ?? 0),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     onTap: () => _edit(context, ref, w),
                   ),
                 ListTile(
                   leading: const Icon(Icons.add),
-                  title: const Text('নতুন ওয়ালেট'),
+                  title: Text(tr('নতুন ওয়ালেট', 'New wallet')),
                   onTap: () => _edit(context, ref, null),
                 ),
               ],
@@ -60,13 +73,16 @@ class WalletsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(8),
             child: Text(
-              'ট্রান্সফার খরচ বা জমা হিসেবে গোনা হয় না। প্রথম ওয়ালেটের শুরুর ব্যালেন্সই অ্যাপ শুরুর সময় আপনার হাতে থাকা টাকা।',
+              tr(
+                'ট্রান্সফার খরচ বা জমা হিসেবে গোনা হয় না। প্রথম ওয়ালেটের শুরুর ব্যালেন্সই অ্যাপ শুরুর সময় আপনার হাতে থাকা টাকা।',
+                'Transfers are not counted as income or expense. A wallet\'s opening balance is the money you had when you started using the app.',
+              ),
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
             ),
           ),
           if (transfers.isNotEmpty)
             SectionCard(
-              title: 'ট্রান্সফার',
+              title: tr('ট্রান্সফার', 'Transfer'),
               padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
               child: Column(
                 children: [
@@ -76,10 +92,20 @@ class WalletsScreen extends ConsumerWidget {
                       title: Text(
                         '${fin.walletById[t.fromWalletId]?.name ?? '?'} → ${fin.walletById[t.toWalletId]?.name ?? '?'}',
                       ),
-                      subtitle: Text([dateTimeLabel(t.occurredAt), if (t.note.isNotEmpty) t.note].join(' · ')),
-                      trailing: Text(money(t.amount), style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(
+                        [dateTimeLabel(t.occurredAt), if (t.note.isNotEmpty) t.note].join(' · '),
+                      ),
+                      trailing: Text(
+                        money(t.amount),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                       onLongPress: () async {
-                        if (await confirm(context, 'ট্রান্সফার মুছবেন?', ok: 'মুছুন', danger: true)) {
+                        if (await confirm(
+                          context,
+                          tr('ট্রান্সফার মুছবেন?', 'Delete transfer?'),
+                          ok: tr('মুছুন', 'Delete'),
+                          danger: true,
+                        )) {
                           await ref.read(repoProvider).deleteTransfer(t.id);
                         }
                       },
@@ -101,7 +127,9 @@ class WalletsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: Text(w == null ? 'নতুন ওয়ালেট' : 'ওয়ালেট এডিট'),
+          title: Text(
+            w == null ? tr('নতুন ওয়ালেট', 'New wallet') : tr('ওয়ালেট এডিট', 'Edit wallet'),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -118,7 +146,9 @@ class WalletsScreen extends ConsumerWidget {
                   Expanded(
                     child: TextField(
                       controller: name,
-                      decoration: const InputDecoration(labelText: 'নাম (যেমন bKash)'),
+                      decoration: InputDecoration(
+                        labelText: tr('নাম (যেমন bKash)', 'Name (e.g. bKash)'),
+                      ),
                     ),
                   ),
                 ],
@@ -127,12 +157,14 @@ class WalletsScreen extends ConsumerWidget {
               TextField(
                 controller: opening,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                decoration: const InputDecoration(labelText: 'শুরুর ব্যালেন্স ৳'),
+                decoration: InputDecoration(
+                  labelText: tr('শুরুর ব্যালেন্স ৳', 'Opening balance ৳'),
+                ),
               ),
               if (w != null)
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('লুকিয়ে রাখুন'),
+                  title: Text(tr('লুকিয়ে রাখুন', 'Hide')),
                   value: archived,
                   onChanged: (v) => setState(() => archived = v),
                 ),
@@ -140,9 +172,15 @@ class WalletsScreen extends ConsumerWidget {
           ),
           actions: [
             if (w != null)
-              TextButton(onPressed: () => Navigator.pop(ctx, 'delete'), child: const Text('মুছুন')),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('বাতিল')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, 'save'), child: const Text('সেভ')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'delete'),
+                child: Text(tr('মুছুন', 'Delete')),
+              ),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('বাতিল', 'Cancel'))),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'save'),
+              child: Text(tr('সেভ', 'Save')),
+            ),
           ],
         ),
       ),
@@ -153,15 +191,23 @@ class WalletsScreen extends ConsumerWidget {
       if (w == null) {
         await repo.addWallet(name.text, emoji, ob);
       } else {
-        await repo.updateWallet(w.copyWith(name: name.text.trim(), emoji: emoji, openingBalance: ob, archived: archived));
+        await repo.updateWallet(
+          w.copyWith(name: name.text.trim(), emoji: emoji, openingBalance: ob, archived: archived),
+        );
       }
     } else if (result == 'delete' && w != null) {
       final n = await repo.countWalletUse(w.id);
       if (!context.mounted) return;
       if (n > 0) {
-        toast(context, 'এই ওয়ালেটে ${dg(n)}টি এন্ট্রি/ট্রান্সফার আছে — মুছতে না পারলে \'লুকিয়ে রাখুন\'');
+        toast(
+          context,
+          tr(
+            'এই ওয়ালেটে ${dg(n)}টি এন্ট্রি/ট্রান্সফার আছে — মুছতে না পারলে \'লুকিয়ে রাখুন\'',
+            'This wallet has ${dg(n)} entries/transfers — use \'Hide\' instead of deleting',
+          ),
+        );
       } else if ((ref.read(walletsProvider).value?.length ?? 0) <= 1) {
-        toast(context, 'অন্তত একটি ওয়ালেট থাকতে হবে');
+        toast(context, tr('অন্তত একটি ওয়ালেট থাকতে হবে', 'You need at least one wallet'));
       } else {
         await repo.deleteWallet(w.id);
       }
@@ -177,21 +223,27 @@ class WalletsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: const Text('ট্রান্সফার'),
+          title: Text(tr('ট্রান্সফার', 'Transfer')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
                 initialValue: from,
-                decoration: const InputDecoration(labelText: 'থেকে'),
-                items: [for (final w in wallets) DropdownMenuItem(value: w.id, child: Text('${w.emoji} ${w.name}'))],
+                decoration: InputDecoration(labelText: tr('থেকে', 'From')),
+                items: [
+                  for (final w in wallets)
+                    DropdownMenuItem(value: w.id, child: Text('${w.emoji} ${w.name}')),
+                ],
                 onChanged: (v) => setState(() => from = v!),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<int>(
                 initialValue: to,
-                decoration: const InputDecoration(labelText: 'তে'),
-                items: [for (final w in wallets) DropdownMenuItem(value: w.id, child: Text('${w.emoji} ${w.name}'))],
+                decoration: InputDecoration(labelText: tr('তে', 'To')),
+                items: [
+                  for (final w in wallets)
+                    DropdownMenuItem(value: w.id, child: Text('${w.emoji} ${w.name}')),
+                ],
                 onChanged: (v) => setState(() => to = v!),
               ),
               const SizedBox(height: 10),
@@ -199,15 +251,24 @@ class WalletsScreen extends ConsumerWidget {
                 controller: amount,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'টাকা ৳'),
+                decoration: InputDecoration(labelText: tr('টাকা ৳', 'Amount ৳')),
               ),
               const SizedBox(height: 10),
-              TextField(controller: note, decoration: const InputDecoration(labelText: 'নোট (ঐচ্ছিক)')),
+              TextField(
+                controller: note,
+                decoration: InputDecoration(labelText: tr('নোট (ঐচ্ছিক)', 'Note (optional)')),
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('বাতিল')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ট্রান্সফার')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('বাতিল', 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(tr('ট্রান্সফার', 'Transfer')),
+            ),
           ],
         ),
       ),
@@ -215,9 +276,13 @@ class WalletsScreen extends ConsumerWidget {
     final a = parseMoney(amount.text);
     if (ok != true || a == null || a <= 0) return;
     if (from == to) {
-      if (context.mounted) toast(context, 'একই ওয়ালেটে ট্রান্সফার হয় না');
+      if (context.mounted) {
+        toast(context, tr('একই ওয়ালেটে ট্রান্সফার হয় না', 'Can\'t transfer to the same wallet'));
+      }
       return;
     }
-    await ref.read(repoProvider).saveTransfer(from: from, to: to, amount: a, at: DateTime.now(), note: note.text);
+    await ref
+        .read(repoProvider)
+        .saveTransfer(from: from, to: to, amount: a, at: DateTime.now(), note: note.text);
   }
 }

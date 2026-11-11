@@ -16,6 +16,7 @@ import '../widgets/common.dart';
 import '../widgets/logo.dart';
 import 'data_screens.dart';
 import 'lock_screen.dart';
+import '../../core/i18n.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -27,56 +28,128 @@ class SettingsScreen extends ConsumerWidget {
     void go(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
     Widget header(String t) => Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-      child: Text(t, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700)),
+      child: Text(
+        t,
+        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
+      ),
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('সেটিংস')),
+      appBar: AppBar(title: Text(tr('সেটিংস', 'Settings'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 40),
         children: [
-          header('হিসাব'),
-          ListTile(leading: const Text('🏷️', style: TextStyle(fontSize: 22)), title: const Text('ক্যাটাগরি'), subtitle: const Text('নাম, ইমোজি, রং, ক্রম'), onTap: () => go(const CategoriesScreen())),
-          ListTile(leading: const Text('👥', style: TextStyle(fontSize: 22)), title: const Text('ব্যক্তি'), onTap: () => go(const PersonsScreen())),
-          ListTile(leading: const Text('👛', style: TextStyle(fontSize: 22)), title: const Text('ওয়ালেট ও ট্রান্সফার'), subtitle: const Text('ক্যাশ, bKash, Nagad, ব্যাংক · শুরুর ব্যালেন্স'), onTap: () => go(const WalletsScreen())),
-          ListTile(leading: const Text('📊', style: TextStyle(fontSize: 22)), title: const Text('মাসিক বাজেট'), onTap: () => go(const BudgetsScreen())),
-          ListTile(leading: const Text('🎯', style: TextStyle(fontSize: 22)), title: const Text('সঞ্চয়ের লক্ষ্য'), onTap: () => go(const GoalsScreen())),
-          ListTile(leading: const Text('🔁', style: TextStyle(fontSize: 22)), title: const Text('রিকারিং এন্ট্রি'), subtitle: const Text('মেস ভাড়া, ইন্টারনেট বিল'), onTap: () => go(const RecurringScreen())),
-          ListTile(leading: const Text('#️⃣', style: TextStyle(fontSize: 22)), title: const Text('ট্যাগ'), onTap: () => go(const TagsScreen())),
-
-          header('ডাটা'),
-          ListTile(leading: const Icon(Icons.upload_file), title: const Text('এক্সপোর্ট'), subtitle: const Text('JSON, Excel, CSV, PDF, Word'), onTap: () => go(const ExportScreen())),
-          ListTile(leading: const Icon(Icons.download_for_offline_outlined), title: const Text('ইমপোর্ট'), subtitle: const Text('JSON, Excel বা CSV ফাইল থেকে'), onTap: () => startImport(context, ref)),
+          header(tr('ভাষা', 'Language')),
           ListTile(
-            leading: const Icon(Icons.backup_outlined),
-            title: const Text('অটো ব্যাকআপ'),
-            subtitle: Text(
-              '${switch (s.autoBackup) { 'off' => 'বন্ধ', 'monthly' => 'মাস শেষে', _ => 'প্রতি সপ্তাহে' }}'
-              '${s.lastBackup != null ? ' · শেষ: ${dateTimeLabel(s.lastBackup!)}' : ''}',
-            ),
-            trailing: DropdownButton<String>(
-              value: s.autoBackup,
-              underline: const SizedBox(),
-              items: const [
-                DropdownMenuItem(value: 'weekly', child: Text('সাপ্তাহিক')),
-                DropdownMenuItem(value: 'monthly', child: Text('মাসিক')),
-                DropdownMenuItem(value: 'off', child: Text('বন্ধ')),
-              ],
-              onChanged: (v) => repo.setSetting('auto_backup', v!),
-            ),
-            onTap: () => go(const BackupsScreen()),
-          ),
-
-          header('দেখানো'),
-          ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
-            title: const Text('থিম'),
+            leading: const Icon(Icons.language),
+            title: const Text('বাংলা / English'),
             trailing: SegmentedButton<String>(
               showSelectedIcon: false,
               segments: const [
-                ButtonSegment(value: 'system', label: Text('অটো')),
-                ButtonSegment(value: 'light', label: Text('লাইট')),
-                ButtonSegment(value: 'dark', label: Text('ডার্ক')),
+                ButtonSegment(value: 'bn', label: Text('বাংলা')),
+                ButtonSegment(value: 'en', label: Text('English')),
+              ],
+              selected: {s.english ? 'en' : 'bn'},
+              onSelectionChanged: (v) => repo.setLanguage(v.first),
+            ),
+          ),
+          header(tr('হিসাব', 'Accounts')),
+          ListTile(
+            leading: const Text('🏷️', style: TextStyle(fontSize: 22)),
+            title: Text(tr('ক্যাটাগরি', 'Categories')),
+            subtitle: Text(tr('নাম, ইমোজি, রং, ক্রম', 'Name, emoji, colour, order')),
+            onTap: () => go(const CategoriesScreen()),
+          ),
+          ListTile(
+            leading: const Text('👥', style: TextStyle(fontSize: 22)),
+            title: Text(tr('ব্যক্তি', 'People')),
+            onTap: () => go(const PersonsScreen()),
+          ),
+          ListTile(
+            leading: const Text('👛', style: TextStyle(fontSize: 22)),
+            title: Text(tr('ওয়ালেট ও ট্রান্সফার', 'Wallets & transfers')),
+            subtitle: Text(
+              tr(
+                'ক্যাশ, bKash, Nagad, ব্যাংক · শুরুর ব্যালেন্স',
+                'Cash, bKash, Nagad, bank · opening balance',
+              ),
+            ),
+            onTap: () => go(const WalletsScreen()),
+          ),
+          ListTile(
+            leading: const Text('📊', style: TextStyle(fontSize: 22)),
+            title: Text(tr('মাসিক বাজেট', 'Monthly budget')),
+            onTap: () => go(const BudgetsScreen()),
+          ),
+          ListTile(
+            leading: const Text('🎯', style: TextStyle(fontSize: 22)),
+            title: Text(tr('সঞ্চয়ের লক্ষ্য', 'Savings goals')),
+            onTap: () => go(const GoalsScreen()),
+          ),
+          ListTile(
+            leading: const Text('🔁', style: TextStyle(fontSize: 22)),
+            title: Text(tr('রিকারিং এন্ট্রি', 'Recurring entries')),
+            subtitle: Text(tr('মেস ভাড়া, ইন্টারনেট বিল', 'Rent, internet bill')),
+            onTap: () => go(const RecurringScreen()),
+          ),
+          ListTile(
+            leading: const Text('#️⃣', style: TextStyle(fontSize: 22)),
+            title: Text(tr('ট্যাগ', 'Tags')),
+            onTap: () => go(const TagsScreen()),
+          ),
+
+          header(tr('ডাটা', 'Data')),
+          ListTile(
+            leading: const Icon(Icons.upload_file),
+            title: Text(tr('এক্সপোর্ট', 'Export')),
+            subtitle: const Text('JSON, Excel, CSV, PDF, Word'),
+            onTap: () => go(const ExportScreen()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.download_for_offline_outlined),
+            title: Text(tr('ইমপোর্ট', 'Import')),
+            subtitle: Text(tr('JSON, Excel বা CSV ফাইল থেকে', 'From a JSON, Excel or CSV file')),
+            onTap: () => startImport(context, ref),
+          ),
+          ListTile(
+            leading: Icon(Icons.backup_outlined),
+            title: Text(tr('অটো ব্যাকআপ', 'Auto backup')),
+            subtitle: Text(
+              switch (s.autoBackup) {
+                    'off' => tr('বন্ধ', 'Off'),
+                    'monthly' => tr('মাস শেষে', 'At month end'),
+                    _ => tr('প্রতি সপ্তাহে', 'Every week'),
+                  } +
+                  (s.lastBackup != null
+                      ? tr(
+                          ' · শেষ: ${dateTimeLabel(s.lastBackup!)}',
+                          ' · Last: ${dateTimeLabel(s.lastBackup!)}',
+                        )
+                      : ''),
+            ),
+            trailing: DropdownButton<String>(
+              value: s.autoBackup,
+              underline: SizedBox(),
+              items: [
+                DropdownMenuItem(value: 'weekly', child: Text(tr('সাপ্তাহিক', 'Weekly'))),
+                DropdownMenuItem(value: 'monthly', child: Text(tr('মাসিক', 'Monthly'))),
+                DropdownMenuItem(value: 'off', child: Text(tr('বন্ধ', 'Off'))),
+              ],
+              onChanged: (v) => repo.setSetting('auto_backup', v!),
+            ),
+            onTap: () => go(BackupsScreen()),
+          ),
+
+          header(tr('দেখানো', 'Display')),
+          ListTile(
+            leading: Icon(Icons.dark_mode_outlined),
+            title: Text(tr('থিম', 'Theme')),
+            trailing: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 'system', label: Text(tr('অটো', 'Auto'))),
+                ButtonSegment(value: 'light', label: Text(tr('লাইট', 'Light'))),
+                ButtonSegment(value: 'dark', label: Text(tr('ডার্ক', 'Dark'))),
               ],
               selected: {s.raw['theme'] ?? 'system'},
               onSelectionChanged: (v) => repo.setSetting('theme', v.first),
@@ -84,17 +157,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           SwitchListTile(
             secondary: const Icon(Icons.translate),
-            title: const Text('বাংলা সংখ্যা'),
+            title: Text(tr('বাংলা সংখ্যা', 'Bengali digits')),
             subtitle: Text(s.bengaliDigits ? '৳১,২৩৪.৫০' : '৳1,234.50'),
             value: s.bengaliDigits,
             onChanged: (v) => repo.setSetting('digits', v ? 'bn' : 'en'),
           ),
 
-          header('নোটিফিকেশন'),
+          header(tr('নোটিফিকেশন', 'Notifications')),
           SwitchListTile(
             secondary: const Icon(Icons.notifications_active_outlined),
-            title: const Text('দৈনিক রিমাইন্ডার'),
-            subtitle: Text('রাতে \'আজকের খরচ লিখেছেন?\' · ${_time(s.reminderTime)}'),
+            title: Text(tr('দৈনিক রিমাইন্ডার', 'Daily reminder')),
+            subtitle: Text(
+              tr(
+                'রাতে \'আজকের খরচ লিখেছেন?\' · ${_time(s.reminderTime)}',
+                '\'Logged today\'s spending?\' · ${_time(s.reminderTime)}',
+              ),
+            ),
             value: s.reminderEnabled,
             onChanged: (v) async {
               if (v) {
@@ -109,7 +187,7 @@ class SettingsScreen extends ConsumerWidget {
           if (s.reminderEnabled)
             ListTile(
               leading: const SizedBox(width: 24),
-              title: const Text('রিমাইন্ডারের সময়'),
+              title: Text(tr('রিমাইন্ডারের সময়', 'Reminder time')),
               trailing: Text(_time(s.reminderTime)),
               onTap: () async {
                 final t = await showTimePicker(context: context, initialTime: s.reminderTime);
@@ -120,8 +198,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
           SwitchListTile(
             secondary: const Icon(Icons.warning_amber_outlined),
-            title: const Text('বাজেট সতর্কতা'),
-            subtitle: const Text('৮০% আর ১০০% পার হলে'),
+            title: Text(tr('বাজেট সতর্কতা', 'Budget alerts')),
+            subtitle: Text(tr('৮০% আর ১০০% পার হলে', 'At 80% and 100%')),
             value: s.budgetAlerts,
             onChanged: (v) async {
               if (v) await Notify.instance.requestPermission();
@@ -130,7 +208,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           SwitchListTile(
             secondary: const Icon(Icons.alarm),
-            title: const Text('ধারের ফেরত-তারিখে রিমাইন্ডার'),
+            title: Text(tr('ধারের ফেরত-তারিখে রিমাইন্ডার', 'Debt due-date reminders')),
             value: s.debtReminders,
             onChanged: (v) async {
               if (v) await Notify.instance.requestPermission();
@@ -138,17 +216,20 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
 
-          header('নিরাপত্তা'),
+          header(tr('নিরাপত্তা', 'Security')),
           SwitchListTile(
             secondary: const Icon(Icons.lock_outline),
-            title: const Text('অ্যাপ লক (PIN)'),
+            title: Text(tr('অ্যাপ লক (PIN)', 'App lock (PIN)')),
             value: s.lockEnabled,
             onChanged: (v) async {
               if (v) {
-                final hash = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const SetPinScreen()));
+                final hash = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SetPinScreen()),
+                );
                 if (hash != null) {
                   await repo.setSetting('lock_pin', hash);
-                  if (context.mounted) toast(context, 'অ্যাপ লক চালু হয়েছে');
+                  if (context.mounted) toast(context, tr('অ্যাপ লক চালু হয়েছে', 'App lock is on'));
                 }
               } else {
                 await repo.removeSetting('lock_pin');
@@ -159,11 +240,19 @@ class SettingsScreen extends ConsumerWidget {
           if (s.lockEnabled)
             SwitchListTile(
               secondary: const Icon(Icons.fingerprint),
-              title: const Text('ফিঙ্গারপ্রিন্ট দিয়েও খোলা'),
+              title: Text(tr('ফিঙ্গারপ্রিন্ট দিয়েও খোলা', 'Also unlock with fingerprint')),
               value: s.lockBiometric,
               onChanged: (v) async {
                 if (v && !await biometricAvailable()) {
-                  if (context.mounted) toast(context, 'এই ফোনে ফিঙ্গারপ্রিন্ট পাওয়া যায়নি');
+                  if (context.mounted) {
+                    toast(
+                      context,
+                      tr(
+                        'এই ফোনে ফিঙ্গারপ্রিন্ট পাওয়া যায়নি',
+                        'No fingerprint sensor found on this phone',
+                      ),
+                    );
+                  }
                   return;
                 }
                 if (v && !await authenticateBiometric()) return;
@@ -171,11 +260,16 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
 
-          header('সম্পর্কে'),
+          header(tr('সম্পর্কে', 'About')),
           ListTile(
             leading: const AppLogo(size: 36),
-            title: const Text('টাকার খাতা'),
-            subtitle: Text('সংস্করণ ${dg('1.0.0')} · সম্পূর্ণ অফলাইন — কোনো সার্ভার, লগইন বা ইন্টারনেট লাগে না'),
+            title: Text(tr('টাকার খাতা', 'Takar Khata')),
+            subtitle: Text(
+              tr(
+                'সংস্করণ ${dg('1.0.0')} · সম্পূর্ণ অফলাইন — কোনো সার্ভার, লগইন বা ইন্টারনেট লাগে না',
+                'Version ${dg('1.0.0')} · Fully offline — no server, login or internet needed',
+              ),
+            ),
           ),
         ],
       ),

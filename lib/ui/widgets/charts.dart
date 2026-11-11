@@ -7,6 +7,7 @@ import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../core/theme.dart';
 import '../../domain/finance.dart';
+import '../../core/i18n.dart';
 
 /// চার্টে অ্যানিমেশন — রিপোর্ট রেন্ডারে বন্ধ রাখা হয়।
 class ChartAnim {
@@ -52,8 +53,10 @@ class _DonutChartState extends State<DonutChart> {
       return SizedBox(
         height: 80,
         child: Center(
-          child: Text('এই সময়ে কোনো এন্ট্রি নেই',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+          child: Text(
+            tr('এই সময়ে কোনো এন্ট্রি নেই', 'No entries in this period'),
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
         ),
       );
     }
@@ -148,7 +151,10 @@ class _DonutChartState extends State<DonutChart> {
                 ),
               if (slices.length > widget.maxLegend)
                 Text(
-                  '+ আরও ${dg(slices.length - widget.maxLegend)}টি',
+                  tr(
+                    '+ আরও ${dg(slices.length - widget.maxLegend)}টি',
+                    '+ ${dg(slices.length - widget.maxLegend)} more',
+                  ),
                   style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
                 ),
             ],
@@ -232,7 +238,7 @@ class DailyBarChart extends StatelessWidget {
       height: height,
       child: BarChart(
         BarChartData(
-          maxY: maxV == 0 ? 1 : maxV * 1.15,
+          maxY: maxV == 0 ? 100 : maxV * 1.15,
           gridData: _grid(context),
           borderData: FlBorderData(show: false),
           extraLinesData: ExtraLinesData(
@@ -247,7 +253,10 @@ class DailyBarChart extends StatelessWidget {
                     show: true,
                     alignment: Alignment.topRight,
                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-                    labelResolver: (_) => 'গড় ${moneyCompact((avg * 100).round())}',
+                    labelResolver: (_) => tr(
+                      'গড় ${moneyCompact((avg * 100).round())}',
+                      'avg ${moneyCompact((avg * 100).round())}',
+                    ),
                   ),
                 ),
             ],
@@ -318,8 +327,12 @@ class CumulativeChart extends StatelessWidget {
     final now = DateTime.now();
     final days = daysInMonth(month);
     final upTo = sameMonth(month, now) ? now.day : days;
-    final cur = [for (var i = 0; i < upTo && i < current.length; i++) FlSpot(i + 1.0, current[i] / 100)];
-    final last = [for (var i = 0; i < lastMonth.length && i < days; i++) FlSpot(i + 1.0, lastMonth[i] / 100)];
+    final cur = [
+      for (var i = 0; i < upTo && i < current.length; i++) FlSpot(i + 1.0, current[i] / 100),
+    ];
+    final last = [
+      for (var i = 0; i < lastMonth.length && i < days; i++) FlSpot(i + 1.0, lastMonth[i] / 100),
+    ];
     final maxY = [
       ...cur.map((s) => s.y),
       ...last.map((s) => s.y),
@@ -334,7 +347,7 @@ class CumulativeChart extends StatelessWidget {
               minX: 1,
               maxX: days.toDouble(),
               minY: 0,
-              maxY: maxY == 0 ? 1 : maxY * 1.1,
+              maxY: maxY == 0 ? 100 : maxY * 1.1,
               gridData: _grid(context),
               borderData: FlBorderData(show: false),
               titlesData: _titles(
@@ -358,8 +371,12 @@ class CumulativeChart extends StatelessWidget {
                       label: HorizontalLineLabel(
                         show: true,
                         alignment: Alignment.topLeft,
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.expense),
-                        labelResolver: (_) => 'বাজেট',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.expense,
+                        ),
+                        labelResolver: (_) => tr('বাজেট', 'Budget'),
                       ),
                     ),
                 ],
@@ -370,7 +387,10 @@ class CumulativeChart extends StatelessWidget {
                   getTooltipItems: (spots) => [
                     for (final s in spots)
                       LineTooltipItem(
-                        '${s.barIndex == 0 ? 'এ মাস' : 'গত মাস'} ${dg(s.x.toInt())}: ${money((s.y * 100).round())}',
+                        tr(
+                          '${s.barIndex == 0 ? 'এ মাস' : 'গত মাস'} ${dg(s.x.toInt())}: ${money((s.y * 100).round())}',
+                          '${s.barIndex == 0 ? 'This month' : 'Last month'} ${dg(s.x.toInt())}: ${money((s.y * 100).round())}',
+                        ),
                         _tooltipText(context),
                       ),
                   ],
@@ -408,9 +428,16 @@ class CumulativeChart extends StatelessWidget {
         Wrap(
           spacing: 14,
           children: [
-            _Legend(AppColors.expense, 'এ মাস'),
-            _Legend(Theme.of(context).colorScheme.outline, 'গত মাসের একই দিন'),
-            if (budget != null) _Legend(AppColors.expense.withValues(alpha: .6), 'বাজেট ${money(budget!)}'),
+            _Legend(AppColors.expense, tr('এ মাস', 'This month')),
+            _Legend(
+              Theme.of(context).colorScheme.outline,
+              tr('গত মাসের একই দিন', 'Same day last month'),
+            ),
+            if (budget != null)
+              _Legend(
+                AppColors.expense.withValues(alpha: .6),
+                tr('বাজেট ${money(budget!)}', 'Budget ${money(budget!)}'),
+              ),
           ],
         ),
       ],
@@ -442,12 +469,17 @@ class TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (series.isEmpty) return const SizedBox(height: 60, child: Center(child: Text('ডাটা নেই')));
+    if (series.isEmpty) {
+      return SizedBox(height: 60, child: Center(child: Text(tr('ডাটা নেই', 'No data'))));
+    }
     final n = series.length;
     final step = (n / 6).ceil();
-    List<FlSpot> spots(int Function(MonthTotals) f) =>
-        [for (var i = 0; i < n; i++) FlSpot(i.toDouble(), f(series[i]) / 100)];
-    final values = [for (final m in series) ...[m.income, m.expense, m.saving]];
+    List<FlSpot> spots(int Function(MonthTotals) f) => [
+      for (var i = 0; i < n; i++) FlSpot(i.toDouble(), f(series[i]) / 100),
+    ];
+    final values = [
+      for (final m in series) ...[m.income, m.expense, m.saving],
+    ];
     final maxY = values.fold(0, math.max) / 100;
     final minY = math.min(0, values.fold(0, math.min)) / 100;
     LineChartBarData line(List<FlSpot> s, Color c, {bool dashed = false}) => LineChartBarData(
@@ -468,7 +500,7 @@ class TrendChart extends StatelessWidget {
               minX: 0,
               maxX: math.max(1, n - 1).toDouble(),
               minY: minY * 1.1,
-              maxY: maxY == 0 ? 1 : maxY * 1.1,
+              maxY: maxY == 0 ? 100 : maxY * 1.1,
               gridData: _grid(context),
               borderData: FlBorderData(show: false),
               titlesData: _titles(
@@ -479,7 +511,10 @@ class TrendChart extends StatelessWidget {
                   }
                   return SideTitleWidget(
                     meta: meta,
-                    child: Text(monthShortLabel(series[i].month), style: const TextStyle(fontSize: 9)),
+                    child: Text(
+                      monthShortLabel(series[i].month),
+                      style: const TextStyle(fontSize: 9),
+                    ),
                   );
                 },
               ),
@@ -495,7 +530,10 @@ class TrendChart extends StatelessWidget {
                   getTooltipItems: (spots) => [
                     for (final s in spots)
                       LineTooltipItem(
-                        '${['জমা', 'খরচ', 'সঞ্চয়'][s.barIndex]}: ${money((s.y * 100).round())}',
+                        tr(
+                          '${['জমা', 'খরচ', 'সঞ্চয়'][s.barIndex]}: ${money((s.y * 100).round())}',
+                          '${['Income', 'Expense', 'Savings'][s.barIndex]}: ${money((s.y * 100).round())}',
+                        ),
                         _tooltipText(context),
                       ),
                   ],
@@ -511,12 +549,12 @@ class TrendChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Wrap(
+        Wrap(
           spacing: 14,
           children: [
-            _Legend(AppColors.income, 'জমা'),
-            _Legend(AppColors.expense, 'খরচ'),
-            _Legend(AppColors.brand, 'সঞ্চয়'),
+            _Legend(AppColors.income, tr('জমা', 'Income')),
+            _Legend(AppColors.expense, tr('খরচ', 'Expense')),
+            _Legend(AppColors.brand, tr('সঞ্চয়', 'Savings')),
           ],
         ),
       ],
@@ -535,6 +573,7 @@ class StackedMonthChart extends StatelessWidget {
     this.height = 220,
   });
   final List<DateTime> months;
+
   /// প্রতিটি মাসের জন্য categoryId → টাকা
   final List<Map<int, int>> data;
   final Map<int, Color> colors;
@@ -544,7 +583,9 @@ class StackedMonthChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = months.length;
-    if (n == 0) return const SizedBox(height: 60, child: Center(child: Text('ডাটা নেই')));
+    if (n == 0) {
+      return SizedBox(height: 60, child: Center(child: Text(tr('ডাটা নেই', 'No data'))));
+    }
     final totals = [for (final m in data) m.values.fold(0, (s, v) => s + v)];
     final maxY = totals.fold(0, math.max) / 100;
     final step = (n / 6).ceil();
@@ -558,16 +599,16 @@ class StackedMonthChart extends StatelessWidget {
       height: height,
       child: BarChart(
         BarChartData(
-          maxY: maxY == 0 ? 1 : maxY * 1.1,
+          maxY: maxY == 0 ? 100 : maxY * 1.1,
           gridData: _grid(context),
           borderData: FlBorderData(show: false),
           titlesData: _titles(
             bottom: (v, meta) {
               final i = v.toInt();
-              if (i % step != 0 && i != n - 1) return const SizedBox.shrink();
+              if (i % step != 0 && i != n - 1) return SizedBox.shrink();
               return SideTitleWidget(
                 meta: meta,
-                child: Text(monthShortLabel(months[i]), style: const TextStyle(fontSize: 9)),
+                child: Text(monthShortLabel(months[i]), style: TextStyle(fontSize: 9)),
               );
             },
           ),
@@ -632,7 +673,9 @@ class TimeScatterChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (points.isEmpty) return const SizedBox(height: 60, child: Center(child: Text('ডাটা নেই')));
+    if (points.isEmpty) {
+      return SizedBox(height: 60, child: Center(child: Text(tr('ডাটা নেই', 'No data'))));
+    }
     final maxY = points.map((p) => p.amount).fold(0, math.max) / 100;
     return SizedBox(
       height: height,
@@ -641,21 +684,24 @@ class TimeScatterChart extends StatelessWidget {
           minX: 0,
           maxX: 24,
           minY: 0,
-          maxY: maxY == 0 ? 1 : maxY * 1.1,
+          maxY: maxY == 0 ? 100 : maxY * 1.1,
           gridData: _grid(context),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 40,
                 getTitlesWidget: (v, meta) => v == meta.max
-                    ? const SizedBox.shrink()
+                    ? SizedBox.shrink()
                     : SideTitleWidget(
                         meta: meta,
-                        child: Text(moneyCompact((v * 100).round()), style: const TextStyle(fontSize: 10)),
+                        child: Text(
+                          moneyCompact((v * 100).round()),
+                          style: TextStyle(fontSize: 10),
+                        ),
                       ),
               ),
             ),
@@ -667,8 +713,15 @@ class TimeScatterChart extends StatelessWidget {
                 getTitlesWidget: (v, meta) => SideTitleWidget(
                   meta: meta,
                   child: Text(
-                    const {0: 'রাত ১২', 6: 'সকাল ৬', 12: 'দুপুর ১২', 18: 'সন্ধ্যা ৬', 24: 'রাত ১২'}[v.toInt()] ?? '',
-                    style: const TextStyle(fontSize: 9),
+                    {
+                          0: tr('রাত ১২', '12 AM'),
+                          6: tr('সকাল ৬', '6 AM'),
+                          12: tr('দুপুর ১২', '12 PM'),
+                          18: tr('সন্ধ্যা ৬', '6 PM'),
+                          24: tr('রাত ১২', '12 AM'),
+                        }[v.toInt()] ??
+                        '',
+                    style: TextStyle(fontSize: 9),
                   ),
                 ),
               ),
@@ -677,14 +730,14 @@ class TimeScatterChart extends StatelessWidget {
           scatterTouchData: ScatterTouchData(
             touchCallback: (event, resp) {
               final i = resp?.touchedSpot?.spotIndex;
-              if (event is FlTapUpEvent && i != null && i < points.length) onTap?.call(points[i].id);
+              if (event is FlTapUpEvent && i != null && i < points.length) {
+                onTap?.call(points[i].id);
+              }
             },
             touchTooltipData: ScatterTouchTooltipData(
               getTooltipColor: (_) => _tooltipBg(context),
-              getTooltipItems: (s) => ScatterTooltipItem(
-                money((s.y * 100).round()),
-                textStyle: _tooltipText(context),
-              ),
+              getTooltipItems: (s) =>
+                  ScatterTooltipItem(money((s.y * 100).round()), textStyle: _tooltipText(context)),
             ),
           ),
           scatterSpots: [
@@ -728,46 +781,56 @@ class CalendarHeatmap extends StatelessWidget {
     final offset = (firstWeekday + 1) % 7; // শনি=0
     final maxV = values.fold(0, math.max);
     final scheme = Theme.of(context).colorScheme;
-    const headers = ['শনি', 'রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র'];
+    final headers = [
+      tr('শনি', 'Sat'),
+      tr('রবি', 'Sun'),
+      tr('সোম', 'Mon'),
+      tr('মঙ্গল', 'Tue'),
+      tr('বুধ', 'Wed'),
+      tr('বৃহঃ', 'Thu'),
+      tr('শুক্র', 'Fri'),
+    ];
     final cells = <Widget>[
       for (final h in headers)
-        Center(child: Text(h, style: TextStyle(fontSize: 10, color: scheme.outline))),
+        Center(
+          child: Text(h, style: TextStyle(fontSize: 10, color: scheme.outline)),
+        ),
       for (var i = 0; i < offset; i++) const SizedBox.shrink(),
       for (var d = 1; d <= days; d++)
-        Builder(builder: (context) {
-          final v = d - 1 < values.length ? values[d - 1] : 0;
-          final t = maxV == 0 ? 0.0 : v / maxV;
-          final isToday = sameDay(DateTime(month.year, month.month, d), DateTime.now());
-          return GestureDetector(
-            onTap: onTapDay == null ? null : () => onTapDay!(DateTime(month.year, month.month, d)),
-            child: Container(
-              margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: v == 0
-                    ? scheme.surfaceContainerHighest.withValues(alpha: .5)
-                    : Color.lerp(
-                        AppColors.expense.withValues(alpha: .15),
-                        AppColors.expense,
-                        t,
-                      ),
-                borderRadius: BorderRadius.circular(8),
-                border: selectedDay == d
-                    ? Border.all(color: scheme.primary, width: 2)
-                    : (isToday ? Border.all(color: scheme.outline) : null),
-              ),
-              child: Center(
-                child: Text(
-                  dg(d),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: t > .55 ? Colors.white : null,
+        Builder(
+          builder: (context) {
+            final v = d - 1 < values.length ? values[d - 1] : 0;
+            final t = maxV == 0 ? 0.0 : v / maxV;
+            final isToday = sameDay(DateTime(month.year, month.month, d), DateTime.now());
+            return GestureDetector(
+              onTap: onTapDay == null
+                  ? null
+                  : () => onTapDay!(DateTime(month.year, month.month, d)),
+              child: Container(
+                margin: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: v == 0
+                      ? scheme.surfaceContainerHighest.withValues(alpha: .5)
+                      : Color.lerp(AppColors.expense.withValues(alpha: .15), AppColors.expense, t),
+                  borderRadius: BorderRadius.circular(8),
+                  border: selectedDay == d
+                      ? Border.all(color: scheme.primary, width: 2)
+                      : (isToday ? Border.all(color: scheme.outline) : null),
+                ),
+                child: Center(
+                  child: Text(
+                    dg(d),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: t > .55 ? Colors.white : null,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
     ];
     return GridView.count(
       crossAxisCount: 7,
@@ -818,7 +881,10 @@ class HBarList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(money(it.value.abs()), style: TextStyle(fontWeight: FontWeight.w700, color: it.color)),
+                  Text(
+                    money(it.value.abs()),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: it.color),
+                  ),
                 ],
               ),
             ),

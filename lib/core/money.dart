@@ -2,6 +2,8 @@
 /// এই ফাইলে সংখ্যা/টাকা ফরম্যাটিং আর বাংলা সংখ্যা রূপান্তর।
 library;
 
+import 'i18n.dart';
+
 const List<String> _bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
 
 /// অ্যাপ জুড়ে বাংলা সংখ্যা দেখানো হবে কিনা (সেটিংস থেকে সেট হয়)।
@@ -9,8 +11,7 @@ class NumFmt {
   static bool bengali = true;
 }
 
-String toBnDigits(String s) =>
-    s.replaceAllMapped(RegExp(r'[0-9]'), (m) => _bn[int.parse(m[0]!)]);
+String toBnDigits(String s) => s.replaceAllMapped(RegExp(r'[0-9]'), (m) => _bn[int.parse(m[0]!)]);
 
 String toEnDigits(String s) {
   final b = StringBuffer();
@@ -56,17 +57,17 @@ String money(int paisa, {bool symbol = true, bool signed = false}) {
   return symbol ? '$sign৳$s' : '$sign$s';
 }
 
-/// চার্টের জন্য ছোট রূপ: ১.২হা, ৩.৪লা
+/// চার্টের জন্য ছোট রূপ: ১.২হা, ৩.৪লা (English: 1.2K, 3.4L)
 String moneyCompact(int paisa) {
   final taka = paisa / 100;
   final a = taka.abs();
   String s;
   if (a >= 10000000) {
-    s = '${_trim(taka / 10000000)}কো';
+    s = '${_trim(taka / 10000000)}${tr('কো', 'Cr')}';
   } else if (a >= 100000) {
-    s = '${_trim(taka / 100000)}লা';
+    s = '${_trim(taka / 100000)}${tr('লা', 'L')}';
   } else if (a >= 1000) {
-    s = '${_trim(taka / 1000)}হা';
+    s = '${_trim(taka / 1000)}${tr('হা', 'K')}';
   } else {
     s = taka.round().toString();
   }

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/i18n.dart';
 import 'core/money.dart';
 import 'core/theme.dart';
 import 'providers.dart';
 import 'services/backup.dart';
 import 'services/notifications.dart';
+import 'ui/settings/language_screen.dart';
 import 'ui/settings/lock_screen.dart';
 import 'ui/shell.dart';
 import 'ui/widgets/logo.dart';
@@ -60,7 +62,7 @@ class _TakaAppState extends ConsumerState<TakaApp> with WidgetsBindingObserver {
         await Notify.instance.showNow(
           5000 + r.id,
           '🔁 ${r.title} — ${money(r.amount)}',
-          'আজ এন্ট্রি দেওয়ার দিন। ট্যাপ করে যোগ করুন।',
+          tr('আজ এন্ট্রি দেওয়ার দিন। ট্যাপ করে যোগ করুন।', 'Entry due today. Tap to add it.'),
           payload: 'add',
         );
         await repo.advanceRecurring(r);
@@ -82,14 +84,17 @@ class _TakaAppState extends ConsumerState<TakaApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final ready = ref.watch(dataReadyProvider);
     final s = ref.watch(appSettingsProvider);
+    Lang.en = s.english;
     NumFmt.bengali = s.bengaliDigits;
-    if (ready) {
+    if (ready && s.languageChosen) {
       _locked ??= s.lockEnabled;
       WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
     }
     final Widget home;
     if (!ready) {
       home = const Scaffold(body: Center(child: AppLogo(size: 96)));
+    } else if (!s.languageChosen) {
+      home = const LanguageScreen();
     } else if (_locked == true && s.lockEnabled) {
       home = LockScreen(
         pinHash: s.raw['lock_pin']!,
@@ -101,13 +106,13 @@ class _TakaAppState extends ConsumerState<TakaApp> with WidgetsBindingObserver {
     }
     return MaterialApp(
       // সংখ্যার ভাষা বদলালে পুরো UI নতুন করে আঁকা
-      key: ValueKey(s.bengaliDigits),
+      key: ValueKey('${Lang.code}-${s.bengaliDigits}'),
       title: 'টাকার খাতা',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: s.themeMode,
-      locale: const Locale('bn', 'BD'),
+      locale: Lang.en ? const Locale('en') : const Locale('bn', 'BD'),
       supportedLocales: const [Locale('bn', 'BD'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: home,

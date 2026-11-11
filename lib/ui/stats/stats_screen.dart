@@ -10,6 +10,7 @@ import '../widgets/charts.dart';
 import '../widgets/common.dart';
 import '../widgets/txn_list_sheet.dart';
 import 'overview_screen.dart';
+import '../../core/i18n.dart';
 
 enum RangeKind { month, three, six, year, custom }
 
@@ -34,9 +35,12 @@ class _StatsAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 48);
   @override
   Widget build(BuildContext context) => AppBar(
-    title: const Text('পরিসংখ্যান'),
-    bottom: const TabBar(
-      tabs: [Tab(text: 'পরিসংখ্যান'), Tab(text: 'ওভারভিউ')],
+    title: Text(tr('পরিসংখ্যান', 'Statistics')),
+    bottom: TabBar(
+      tabs: [
+        Tab(text: tr('পরিসংখ্যান', 'Statistics')),
+        Tab(text: tr('ওভারভিউ', 'Overview')),
+      ],
     ),
   );
 }
@@ -71,12 +75,12 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
       lastDate: now,
       initialDateRange: _custom == null
           ? DateTimeRange(start: monthStart(now), end: now)
-          : DateTimeRange(start: _custom!.start, end: _custom!.end.subtract(const Duration(days: 1))),
+          : DateTimeRange(start: _custom!.start, end: _custom!.end.subtract(Duration(days: 1))),
     );
     if (r != null) {
       setState(() {
         _kind = RangeKind.custom;
-        _custom = DateRange(dayStart(r.start), dayStart(r.end).add(const Duration(days: 1)));
+        _custom = DateRange(dayStart(r.start), dayStart(r.end).add(Duration(days: 1)));
       });
     }
   }
@@ -98,17 +102,17 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
     bool inR(t) => r.contains(t.occurredAt) && (withDebt || t.debtAction == null);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 120),
       children: [
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final (k, label) in const [
-                (RangeKind.month, 'এই মাস'),
-                (RangeKind.three, '৩ মাস'),
-                (RangeKind.six, '৬ মাস'),
-                (RangeKind.year, 'বছর'),
+              for (final (k, label) in [
+                (RangeKind.month, tr('এই মাস', 'This month')),
+                (RangeKind.three, tr('৩ মাস', '3 months')),
+                (RangeKind.six, tr('৬ মাস', '6 months')),
+                (RangeKind.year, tr('বছর', 'Year')),
               ])
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
@@ -120,22 +124,25 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
                 ),
               ChoiceChip(
                 avatar: const Icon(Icons.date_range, size: 16),
-                label: const Text('কাস্টম'),
+                label: Text(tr('কাস্টম', 'Custom')),
                 selected: _kind == RangeKind.custom,
                 onSelected: (_) => _pickCustom(),
               ),
             ],
           ),
         ),
-        if (_kind != RangeKind.custom) const Center(child: MonthSwitcher(compact: true)),
+        if (_kind != RangeKind.custom) Center(child: MonthSwitcher(compact: true)),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
               Expanded(
-                child: Text(r.label, style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                child: Text(
+                  r.label,
+                  style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
               ),
-              const Text('ধার সহ'),
+              Text(tr('ধার সহ', 'Incl. debt')),
               Switch(
                 value: withDebt,
                 onChanged: (v) => ref.read(repoProvider).setSetting('stats_debt', v ? '1' : '0'),
@@ -145,30 +152,34 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
         ),
         Row(
           children: [
-            _Kpi('মোট জমা', money(inc), AppColors.income),
+            _Kpi(tr('মোট জমা', 'Total income'), money(inc), AppColors.income),
             const SizedBox(width: 8),
-            _Kpi('মোট খরচ', money(exp), AppColors.expense),
+            _Kpi(tr('মোট খরচ', 'Total expense'), money(exp), AppColors.expense),
             const SizedBox(width: 8),
-            _Kpi('সঞ্চয়', money(inc - exp), AppColors.brand),
+            _Kpi(tr('সঞ্চয়', 'Savings'), money(inc - exp), AppColors.brand),
           ],
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            _Kpi('গড় দৈনিক খরচ', money((exp / elapsedDays.clamp(1, 100000)).round()), AppColors.expense),
+            _Kpi(
+              tr('গড় দৈনিক খরচ', 'Avg. daily spend'),
+              money((exp / elapsedDays.clamp(1, 100000)).round()),
+              AppColors.expense,
+            ),
             const SizedBox(width: 8),
-            _Kpi('এন্ট্রি', dg(list.length), Theme.of(context).colorScheme.primary),
+            _Kpi(tr('এন্ট্রি', 'Entries'), dg(list.length), Theme.of(context).colorScheme.primary),
           ],
         ),
         const SizedBox(height: 12),
         SectionCard(
-          title: 'ক্যাটাগরিভিত্তিক ভাগ',
+          title: tr('ক্যাটাগরিভিত্তিক ভাগ', 'Share by category'),
           trailing: SegmentedButton<int>(
             showSelectedIcon: false,
-            style: const ButtonStyle(visualDensity: VisualDensity.compact),
-            segments: const [
-              ButtonSegment(value: TxType.expense, label: Text('খরচ')),
-              ButtonSegment(value: TxType.income, label: Text('জমা')),
+            style: ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: [
+              ButtonSegment(value: TxType.expense, label: Text(tr('খরচ', 'Expense'))),
+              ButtonSegment(value: TxType.income, label: Text(tr('জমা', 'Income'))),
             ],
             selected: {_donutType},
             onSelectionChanged: (s) => setState(() => _donutType = s.first),
@@ -200,32 +211,41 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
         ),
         const SizedBox(height: 12),
         SectionCard(
-          title: 'দৈনিক খরচ',
+          title: tr('দৈনিক খরচ', 'Daily spending'),
           child: DailyBarChart(
             values: fin.dailyTotals(r, TxType.expense, includeDebt: withDebt),
             start: r.start,
             onTapDay: (i) {
               final d = r.start.add(Duration(days: i));
-              showTxnListSheet(context, relativeDayLabel(d), (t) => sameDay(t.occurredAt, d) && inR(t));
+              showTxnListSheet(
+                context,
+                relativeDayLabel(d),
+                (t) => sameDay(t.occurredAt, d) && inR(t),
+              );
             },
           ),
         ),
         const SizedBox(height: 12),
         SectionCard(
-          title: 'ক্রমযোজিত খরচ · ${monthLabel(monthStart(r.end.subtract(const Duration(days: 1))))}',
-          child: Builder(builder: (context) {
-            final m = monthStart(r.end.subtract(const Duration(days: 1)));
-            return CumulativeChart(
-              month: m,
-              current: fin.cumulative(m, TxType.expense, includeDebt: withDebt),
-              lastMonth: fin.cumulative(prevMonth(m), TxType.expense, includeDebt: withDebt),
-              budget: fin.budgetFor(m, 0),
-            );
-          }),
+          title: tr(
+            'ক্রমযোজিত খরচ · ${monthLabel(monthStart(r.end.subtract(const Duration(days: 1))))}',
+            'Cumulative spending · ${monthLabel(monthStart(r.end.subtract(const Duration(days: 1))))}',
+          ),
+          child: Builder(
+            builder: (context) {
+              final m = monthStart(r.end.subtract(const Duration(days: 1)));
+              return CumulativeChart(
+                month: m,
+                current: fin.cumulative(m, TxType.expense, includeDebt: withDebt),
+                lastMonth: fin.cumulative(prevMonth(m), TxType.expense, includeDebt: withDebt),
+                budget: fin.budgetFor(m, 0),
+              );
+            },
+          ),
         ),
         const SizedBox(height: 12),
         SectionCard(
-          title: 'কখন বড় খরচ হয়',
+          title: tr('কখন বড় খরচ হয়', 'When big spends happen'),
           child: TimeScatterChart(
             points: [
               for (final t in list.where((t) => t.type == TxType.expense))
@@ -236,7 +256,7 @@ class _StatsTabState extends ConsumerState<_StatsTab> with AutomaticKeepAliveCli
                   Color(fin.catById[t.categoryId]?.color ?? 0xFF9E9E9E),
                 ),
             ],
-            onTap: (id) => showTxnListSheet(context, 'এন্ট্রি', (t) => t.id == id),
+            onTap: (id) => showTxnListSheet(context, tr('এন্ট্রি', 'Entries'), (t) => t.id == id),
           ),
         ),
       ],
@@ -257,10 +277,16 @@ class _Kpi extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+            ),
             const SizedBox(height: 4),
             FittedBox(
-              child: Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: color)),
+              child: Text(
+                value,
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: color),
+              ),
             ),
           ],
         ),
@@ -270,7 +296,12 @@ class _Kpi extends StatelessWidget {
 }
 
 class _CategoryTable extends StatelessWidget {
-  const _CategoryTable({required this.fin, required this.range, required this.type, required this.withDebt});
+  const _CategoryTable({
+    required this.fin,
+    required this.range,
+    required this.type,
+    required this.withDebt,
+  });
   final FinanceData fin;
   final DateRange range;
   final int type;

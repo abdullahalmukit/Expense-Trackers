@@ -11,6 +11,7 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../widgets/common.dart';
 import '../widgets/emoji_pick.dart';
+import '../../core/i18n.dart';
 
 /// সঞ্চয়ের লক্ষ্য — যেমন 'ল্যাপটপ', প্রগ্রেস রিং সহ
 class GoalsScreen extends ConsumerWidget {
@@ -20,14 +21,21 @@ class GoalsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     return Scaffold(
-      appBar: AppBar(title: const Text('সঞ্চয়ের লক্ষ্য')),
+      appBar: AppBar(title: Text(tr('সঞ্চয়ের লক্ষ্য', 'Savings goals'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(context, ref, null),
         icon: const Icon(Icons.flag_outlined),
-        label: const Text('নতুন লক্ষ্য'),
+        label: Text(tr('নতুন লক্ষ্য', 'New goal')),
       ),
       body: goals.isEmpty
-          ? const EmptyState(emoji: '🎯', title: 'কোনো লক্ষ্য নেই', subtitle: 'যেমন \'ল্যাপটপ\' — কত জমলো তা রিংয়ে দেখাবে')
+          ? EmptyState(
+              emoji: '🎯',
+              title: tr('কোনো লক্ষ্য নেই', 'No goals'),
+              subtitle: tr(
+                'যেমন \'ল্যাপটপ\' — কত জমলো তা রিংয়ে দেখাবে',
+                'e.g. \'Laptop\' — a ring shows how much you\'ve saved',
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               children: [
@@ -48,20 +56,32 @@ class GoalsScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('${g.emoji} ${g.name}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                                    Text(
+                                      '${g.emoji} ${g.name}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                     Text('${money(g.saved)} / ${money(g.target)}'),
                                     if (g.deadline != null)
                                       Text(
-                                        'লক্ষ্য তারিখ ${dayLabel(g.deadline!, withYear: true)}',
-                                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                                        tr(
+                                          'লক্ষ্য তারিখ ${dayLabel(g.deadline!, withYear: true)}',
+                                          'Target date ${dayLabel(g.deadline!, withYear: true)}',
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.outline,
+                                        ),
                                       ),
                                   ],
                                 ),
                               ),
                               IconButton.filledTonal(
-                                tooltip: 'জমা যোগ',
+                                tooltip: tr('জমা যোগ', 'Add savings'),
                                 onPressed: () => _add(context, ref, g),
-                                icon: const Icon(Icons.add),
+                                icon: Icon(Icons.add),
                               ),
                             ],
                           ),
@@ -86,9 +106,9 @@ class GoalsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('জমা করলাম')),
-                  ButtonSegment(value: true, label: Text('তুলে নিলাম')),
+                segments: [
+                  ButtonSegment(value: false, label: Text(tr('জমা করলাম', 'Saved'))),
+                  ButtonSegment(value: true, label: Text(tr('তুলে নিলাম', 'Withdrew'))),
                 ],
                 selected: {withdraw},
                 onSelectionChanged: (s) => setState(() => withdraw = s.first),
@@ -98,20 +118,25 @@ class GoalsScreen extends ConsumerWidget {
                 controller: c,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'টাকা ৳'),
+                decoration: InputDecoration(labelText: tr('টাকা ৳', 'Amount ৳')),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('বাতিল')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('সেভ')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('বাতিল', 'Cancel')),
+            ),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('সেভ', 'Save'))),
           ],
         ),
       ),
     );
     final v = parseMoney(c.text);
     if (ok != true || v == null) return;
-    await ref.read(repoProvider).updateGoal(g.copyWith(saved: math.max(0, g.saved + (withdraw ? -v : v))));
+    await ref
+        .read(repoProvider)
+        .updateGoal(g.copyWith(saved: math.max(0, g.saved + (withdraw ? -v : v))));
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref, Goal? g) async {
@@ -124,7 +149,7 @@ class GoalsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: Text(g == null ? 'নতুন লক্ষ্য' : 'লক্ষ্য এডিট'),
+          title: Text(g == null ? tr('নতুন লক্ষ্য', 'New goal') : tr('লক্ষ্য এডিট', 'Edit goal')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -139,14 +164,19 @@ class GoalsScreen extends ConsumerWidget {
                       child: Text(emoji, style: const TextStyle(fontSize: 40)),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(child: TextField(controller: name, decoration: const InputDecoration(labelText: 'নাম'))),
+                    Expanded(
+                      child: TextField(
+                        controller: name,
+                        decoration: InputDecoration(labelText: tr('নাম', 'Name')),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: target,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'লক্ষ্য ৳'),
+                  decoration: InputDecoration(labelText: tr('লক্ষ্য ৳', 'Target ৳')),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -159,7 +189,9 @@ class GoalsScreen extends ConsumerWidget {
                         child: CircleAvatar(
                           radius: 14,
                           backgroundColor: c,
-                          child: color == c.toARGB32() ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                          child: color == c.toARGB32()
+                              ? const Icon(Icons.check, size: 16, color: Colors.white)
+                              : null,
                         ),
                       ),
                   ],
@@ -167,7 +199,11 @@ class GoalsScreen extends ConsumerWidget {
                 const SizedBox(height: 10),
                 ActionChip(
                   avatar: const Icon(Icons.event, size: 18),
-                  label: Text(deadline == null ? 'লক্ষ্য তারিখ (ঐচ্ছিক)' : dayLabel(deadline!, withYear: true)),
+                  label: Text(
+                    deadline == null
+                        ? tr('লক্ষ্য তারিখ (ঐচ্ছিক)', 'Target date (optional)')
+                        : dayLabel(deadline!, withYear: true),
+                  ),
                   onPressed: () async {
                     final now = DateTime.now();
                     final d = await showDatePicker(
@@ -183,9 +219,16 @@ class GoalsScreen extends ConsumerWidget {
             ),
           ),
           actions: [
-            if (g != null) TextButton(onPressed: () => Navigator.pop(ctx, 'delete'), child: const Text('মুছুন')),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('বাতিল')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, 'save'), child: const Text('সেভ')),
+            if (g != null)
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'delete'),
+                child: Text(tr('মুছুন', 'Delete')),
+              ),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('বাতিল', 'Cancel'))),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'save'),
+              child: Text(tr('সেভ', 'Save')),
+            ),
           ],
         ),
       ),
@@ -196,10 +239,24 @@ class GoalsScreen extends ConsumerWidget {
       if (g == null) {
         await repo.addGoal(name.text, emoji, color, t, deadline);
       } else {
-        await repo.updateGoal(g.copyWith(name: name.text.trim(), emoji: emoji, color: color, target: t, deadline: Value(deadline)));
+        await repo.updateGoal(
+          g.copyWith(
+            name: name.text.trim(),
+            emoji: emoji,
+            color: color,
+            target: t,
+            deadline: Value(deadline),
+          ),
+        );
       }
     } else if (r == 'delete' && g != null) {
-      if (context.mounted && await confirm(context, 'লক্ষ্য মুছবেন?', ok: 'মুছুন', danger: true)) {
+      if (context.mounted &&
+          await confirm(
+            context,
+            tr('লক্ষ্য মুছবেন?', 'Delete goal?'),
+            ok: tr('মুছুন', 'Delete'),
+            danger: true,
+          )) {
         await repo.deleteGoal(g.id);
       }
     }
@@ -244,7 +301,10 @@ class GoalRing extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(goal.emoji, style: TextStyle(fontSize: size * .26)),
-                    Text(percent(p * 100), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                    Text(
+                      percent(p * 100),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                    ),
                   ],
                 ),
               ],
@@ -254,7 +314,13 @@ class GoalRing extends StatelessWidget {
             const SizedBox(height: 4),
             SizedBox(
               width: size + 10,
-              child: Text(goal.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+              child: Text(
+                goal.name,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
         ],

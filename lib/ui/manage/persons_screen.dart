@@ -6,6 +6,7 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../debt/person_screen.dart';
 import '../widgets/common.dart';
+import '../../core/i18n.dart';
 
 class PersonsScreen extends ConsumerWidget {
   const PersonsScreen({super.key});
@@ -19,36 +20,54 @@ class PersonsScreen extends ConsumerWidget {
       if (t.personId != null) counts[t.personId!] = (counts[t.personId!] ?? 0) + 1;
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('ব্যক্তি')),
+      appBar: AppBar(title: Text(tr('ব্যক্তি', 'People'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showPersonEditor(context, ref, null),
-        icon: const Icon(Icons.person_add_alt),
-        label: const Text('নতুন'),
+        icon: Icon(Icons.person_add_alt),
+        label: Text(tr('নতুন', 'New')),
       ),
       body: persons.isEmpty
-          ? const EmptyState(emoji: '👥', title: 'কোনো ব্যক্তি নেই', subtitle: 'ধারের এন্ট্রিতে নাম লিখলে এখানে যোগ হবে')
+          ? EmptyState(
+              emoji: '👥',
+              title: tr('কোনো ব্যক্তি নেই', 'No people'),
+              subtitle: tr(
+                'ধারের এন্ট্রিতে নাম লিখলে এখানে যোগ হবে',
+                'Names you use in debt entries appear here',
+              ),
+            )
           : ListView(
-              padding: const EdgeInsets.only(bottom: 100),
+              padding: EdgeInsets.only(bottom: 100),
               children: [
                 for (final p in persons)
                   ListTile(
                     leading: CircleAvatar(child: Text(p.name.characters.first)),
                     title: Text(p.name),
-                    subtitle: Text([
-                      '${dg(counts[p.id] ?? 0)}টি এন্ট্রি',
-                      if (p.phone.isNotEmpty) dg(p.phone),
-                    ].join(' · ')),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PersonScreen(personId: p.id))),
+                    subtitle: Text(
+                      [
+                        tr(
+                          '${dg(counts[p.id] ?? 0)}টি এন্ট্রি',
+                          '${dg(counts[p.id] ?? 0)} entries',
+                        ),
+                        if (p.phone.isNotEmpty) dg(p.phone),
+                      ].join(' · '),
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PersonScreen(personId: p.id)),
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (v) async {
                         if (v == 'edit') showPersonEditor(context, ref, p);
                         if (v == 'merge') _merge(context, ref, p, persons);
                         if (v == 'delete') _delete(context, ref, p);
                       },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('এডিট')),
-                        PopupMenuItem(value: 'merge', child: Text('অন্য নামের সাথে একত্র করুন')),
-                        PopupMenuItem(value: 'delete', child: Text('মুছুন')),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(value: 'edit', child: Text(tr('এডিট', 'Edit'))),
+                        PopupMenuItem(
+                          value: 'merge',
+                          child: Text(tr('অন্য নামের সাথে একত্র করুন', 'Merge with another name')),
+                        ),
+                        PopupMenuItem(value: 'delete', child: Text(tr('মুছুন', 'Delete'))),
                       ],
                     ),
                   ),
@@ -62,10 +81,21 @@ class PersonsScreen extends ConsumerWidget {
     final n = await repo.countTxnsOfPerson(p.id);
     if (!context.mounted) return;
     if (n > 0) {
-      toast(context, '${p.name}-এর ${dg(n)}টি এন্ট্রি আছে — আগে সেগুলো মুছুন বা অন্য নামের সাথে একত্র করুন');
+      toast(
+        context,
+        tr(
+          '${p.name}-এর ${dg(n)}টি এন্ট্রি আছে — আগে সেগুলো মুছুন বা অন্য নামের সাথে একত্র করুন',
+          '${p.name} has ${dg(n)} entries — delete them or merge with another name first',
+        ),
+      );
       return;
     }
-    if (await confirm(context, '${p.name} মুছবেন?', ok: 'মুছুন', danger: true)) {
+    if (await confirm(
+      context,
+      tr('${p.name} মুছবেন?', 'Delete ${p.name}?'),
+      ok: tr('মুছুন', 'Delete'),
+      danger: true,
+    )) {
       await repo.deletePerson(p.id);
     }
   }
@@ -74,7 +104,9 @@ class PersonsScreen extends ConsumerWidget {
     final target = await showDialog<Person>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text('${p.name}-এর সব এন্ট্রি কার নামে যাবে?'),
+        title: Text(
+          tr('${p.name}-এর সব এন্ট্রি কার নামে যাবে?', 'Move all of ${p.name}\'s entries to whom?'),
+        ),
         children: [
           for (final x in all.where((x) => x.id != p.id))
             SimpleDialogOption(onPressed: () => Navigator.pop(ctx, x), child: Text(x.name)),
@@ -83,7 +115,7 @@ class PersonsScreen extends ConsumerWidget {
     );
     if (target == null) return;
     await ref.read(repoProvider).mergePerson(p.id, target.id);
-    if (context.mounted) toast(context, 'একত্র করা হয়েছে');
+    if (context.mounted) toast(context, tr('একত্র করা হয়েছে', 'Merged'));
   }
 }
 
@@ -94,24 +126,31 @@ Future<void> showPersonEditor(BuildContext context, WidgetRef ref, Person? p) as
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(p == null ? 'নতুন ব্যক্তি' : 'এডিট'),
+      title: Text(p == null ? tr('নতুন ব্যক্তি', 'New person') : tr('এডিট', 'Edit')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(controller: name, autofocus: true, decoration: const InputDecoration(labelText: 'নাম')),
+          TextField(
+            controller: name,
+            autofocus: true,
+            decoration: InputDecoration(labelText: tr('নাম', 'Name')),
+          ),
           const SizedBox(height: 10),
           TextField(
             controller: phone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'ফোন (ঐচ্ছিক)'),
+            decoration: InputDecoration(labelText: tr('ফোন (ঐচ্ছিক)', 'Phone (optional)')),
           ),
           const SizedBox(height: 10),
-          TextField(controller: note, decoration: const InputDecoration(labelText: 'নোট (ঐচ্ছিক)')),
+          TextField(
+            controller: note,
+            decoration: InputDecoration(labelText: tr('নোট (ঐচ্ছিক)', 'Note (optional)')),
+          ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('বাতিল')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('সেভ')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('বাতিল', 'Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('সেভ', 'Save'))),
       ],
     ),
   );
@@ -119,9 +158,13 @@ Future<void> showPersonEditor(BuildContext context, WidgetRef ref, Person? p) as
   final repo = ref.read(repoProvider);
   if (p == null) {
     final id = await repo.findOrCreatePerson(name.text);
-    final created = await (repo.db.select(repo.db.persons)..where((x) => x.id.equals(id))).getSingle();
+    final created = await (repo.db.select(
+      repo.db.persons,
+    )..where((x) => x.id.equals(id))).getSingle();
     await repo.updatePerson(created.copyWith(phone: phone.text.trim(), note: note.text.trim()));
   } else {
-    await repo.updatePerson(p.copyWith(name: name.text.trim(), phone: phone.text.trim(), note: note.text.trim()));
+    await repo.updatePerson(
+      p.copyWith(name: name.text.trim(), phone: phone.text.trim(), note: note.text.trim()),
+    );
   }
 }

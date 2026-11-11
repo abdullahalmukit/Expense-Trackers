@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 
 import '../../core/money.dart';
 import '../widgets/logo.dart';
+import '../../core/i18n.dart';
 
 String hashPin(String pin) => sha256.convert(utf8.encode('takar-khata:$pin')).toString();
 
@@ -22,7 +23,10 @@ Future<bool> biometricAvailable() async {
 Future<bool> authenticateBiometric() async {
   try {
     return await LocalAuthentication().authenticate(
-      localizedReason: 'টাকার খাতা খুলতে আঙুলের ছাপ দিন',
+      localizedReason: tr(
+        'টাকার খাতা খুলতে আঙুলের ছাপ দিন',
+        'Use your fingerprint to open Takar Khata',
+      ),
       biometricOnly: false,
       persistAcrossBackgrounding: true,
     );
@@ -33,7 +37,12 @@ Future<bool> authenticateBiometric() async {
 
 /// PIN বা ফিঙ্গারপ্রিন্ট দিয়ে লক
 class LockScreen extends StatefulWidget {
-  const LockScreen({super.key, required this.pinHash, required this.biometric, required this.onUnlock});
+  const LockScreen({
+    super.key,
+    required this.pinHash,
+    required this.biometric,
+    required this.onUnlock,
+  });
   final String pinHash;
   final bool biometric;
   final VoidCallback onUnlock;
@@ -82,9 +91,9 @@ class _LockScreenState extends State<LockScreen> {
     return Scaffold(
       body: SafeArea(
         child: PinPad(
-          title: 'PIN দিন',
+          title: tr('PIN দিন', 'Enter PIN'),
           pin: _pin,
-          error: _error ? 'ভুল PIN' : null,
+          error: _error ? tr('ভুল PIN', 'Wrong PIN') : null,
           onKey: _key,
           extra: widget.biometric
               ? IconButton(iconSize: 32, onPressed: _bio, icon: const Icon(Icons.fingerprint))
@@ -96,7 +105,14 @@ class _LockScreenState extends State<LockScreen> {
 }
 
 class PinPad extends StatelessWidget {
-  const PinPad({super.key, required this.title, required this.pin, required this.onKey, this.error, this.extra});
+  const PinPad({
+    super.key,
+    required this.title,
+    required this.pin,
+    required this.onKey,
+    this.error,
+    this.extra,
+  });
   final String title;
   final String pin;
   final ValueChanged<String> onKey;
@@ -122,7 +138,10 @@ class PinPad extends StatelessWidget {
                     child: Center(
                       child: k == '⌫'
                           ? const Icon(Icons.backspace_outlined)
-                          : Text(dg(k), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                          : Text(
+                              dg(k),
+                              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
+                            ),
                     ),
                   ),
                 ),
@@ -147,7 +166,9 @@ class PinPad extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: i < pin.length ? scheme.primary : Colors.transparent,
-                  border: Border.all(color: i < 4 || i < pin.length ? scheme.primary : scheme.outlineVariant),
+                  border: Border.all(
+                    color: i < 4 || i < pin.length ? scheme.primary : scheme.outlineVariant,
+                  ),
                 ),
               ),
           ],
@@ -199,7 +220,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
   void _next() {
     if (_pin.length < 4) {
-      setState(() => _error = 'অন্তত ৪ সংখ্যা');
+      setState(() => _error = tr('অন্তত ৪ সংখ্যা', 'At least 4 digits'));
       return;
     }
     if (_first == null) {
@@ -213,7 +234,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
       setState(() {
         _first = null;
         _pin = '';
-        _error = 'মেলেনি — আবার লিখুন';
+        _error = tr('মেলেনি — আবার লিখুন', 'Didn\'t match — try again');
       });
     }
   }
@@ -221,12 +242,14 @@ class _SetPinScreenState extends State<SetPinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('অ্যাপ লক')),
+      appBar: AppBar(title: Text(tr('অ্যাপ লক', 'App lock'))),
       body: Column(
         children: [
           Expanded(
             child: PinPad(
-              title: _first == null ? 'নতুন PIN লিখুন (৪–৬ সংখ্যা)' : 'আবার লিখে নিশ্চিত করুন',
+              title: _first == null
+                  ? tr('নতুন PIN লিখুন (৪–৬ সংখ্যা)', 'Enter a new PIN (4–6 digits)')
+                  : tr('আবার লিখে নিশ্চিত করুন', 'Enter it again to confirm'),
               pin: _pin,
               error: _error,
               onKey: _key,
@@ -237,7 +260,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
             child: FilledButton(
               onPressed: _next,
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              child: Text(_first == null ? 'পরের ধাপ' : 'সেট করুন'),
+              child: Text(_first == null ? tr('পরের ধাপ', 'Next') : tr('সেট করুন', 'Set PIN')),
             ),
           ),
         ],

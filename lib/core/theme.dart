@@ -32,32 +32,19 @@ class AppColors {
 }
 
 ThemeData buildTheme(Brightness b) {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.brand,
-    brightness: b,
-  );
-  final base = ThemeData(
-    useMaterial3: true,
-    colorScheme: scheme,
-    brightness: b,
-  );
+  final scheme = ColorScheme.fromSeed(seedColor: AppColors.brand, brightness: b);
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: b);
   return base.copyWith(
-    scaffoldBackgroundColor: b == Brightness.light
-        ? const Color(0xFFF6F7FB)
-        : scheme.surface,
+    scaffoldBackgroundColor: b == Brightness.light ? const Color(0xFFF6F7FB) : scheme.surface,
     cardTheme: CardThemeData(
       elevation: 0,
       margin: EdgeInsets.zero,
-      color: b == Brightness.light
-          ? Colors.white
-          : scheme.surfaceContainerHigh,
+      color: b == Brightness.light ? Colors.white : scheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     appBarTheme: AppBarTheme(
       centerTitle: false,
-      backgroundColor: b == Brightness.light
-          ? const Color(0xFFF6F7FB)
-          : scheme.surface,
+      backgroundColor: b == Brightness.light ? const Color(0xFFF6F7FB) : scheme.surface,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: base.textTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.w700,
@@ -75,9 +62,7 @@ ThemeData buildTheme(Brightness b) {
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
     bottomSheetTheme: const BottomSheetThemeData(
       showDragHandle: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
     ),
   );
 }
