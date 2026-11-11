@@ -15,6 +15,8 @@ import '../manage/wallets_screen.dart';
 import '../widgets/common.dart';
 import '../widgets/logo.dart';
 import 'data_screens.dart';
+import 'developer_card.dart';
+import 'profile_screen.dart';
 import 'lock_screen.dart';
 import '../../core/i18n.dart';
 
@@ -39,6 +41,33 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 40),
         children: [
+          // প্রোফাইল
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: ProfileAvatar(
+                  photo: s.raw[ProfileFields.photo],
+                  name: s.raw[ProfileFields.name],
+                ),
+                title: Text(
+                  s.raw[ProfileFields.name] ?? tr('প্রোফাইল যোগ করুন', 'Add your profile'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                ),
+                subtitle: Text(
+                  [s.raw[ProfileFields.phone], s.raw[ProfileFields.email]]
+                      .whereType<String>()
+                      .join(' · ')
+                      .ifEmpty(tr('নাম, মোবাইল, ইমেইল, ছবি', 'Name, mobile, email, photo')),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => go(const ProfileScreen()),
+              ),
+            ),
+          ),
           header(tr('ভাষা', 'Language')),
           ListTile(
             leading: const Icon(Icons.language),
@@ -271,10 +300,16 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          header(tr('ডেভেলপার', 'Developer')),
+          const DeveloperCard(),
         ],
       ),
     );
   }
 
   static String _time(TimeOfDay t) => timeLabel(DateTime(2000, 1, 1, t.hour, t.minute));
+}
+
+extension on String {
+  String ifEmpty(String other) => isEmpty ? other : this;
 }

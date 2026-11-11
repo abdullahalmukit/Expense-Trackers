@@ -5,7 +5,7 @@ import '../../core/money.dart';
 import '../../data/database.dart';
 import '../../domain/finance.dart';
 import '../../providers.dart';
-import '../entry/entry_sheet.dart';
+import '../entry/txn_details.dart';
 import 'common.dart';
 import '../../core/i18n.dart';
 
@@ -54,7 +54,7 @@ Future<void> showTxnListSheet(BuildContext context, String title, bool Function(
                           txn: list[i],
                           fin: fin,
                           showDate: true,
-                          onTap: () => showEntrySheet(context, edit: list[i]),
+                          onTap: () => showTxnDetails(context, list[i]),
                         ),
                       ),
               ),

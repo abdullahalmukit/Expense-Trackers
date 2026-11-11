@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../domain/finance.dart';
 import '../../providers.dart';
 import '../entry/entry_sheet.dart';
+import '../entry/txn_details.dart';
 import '../manage/persons_screen.dart';
 import '../widgets/common.dart';
 import '../../core/i18n.dart';
@@ -241,7 +242,7 @@ class _Side extends StatelessWidget {
           ),
           for (final r in rows)
             InkWell(
-              onTap: () => showEntrySheet(context, edit: r.txn),
+              onTap: () => showTxnDetails(context, r.txn),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 child: Row(
@@ -281,7 +282,7 @@ class _Side extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                tr('সারিতে ট্যাপ করলে এডিট', 'Tap a row to edit'),
+                tr('সারিতে ট্যাপ করলে বিস্তারিত', 'Tap a row for details'),
                 style: TextStyle(fontSize: 11, color: outline),
               ),
             ),

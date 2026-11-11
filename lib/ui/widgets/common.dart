@@ -258,12 +258,18 @@ class TxnTile extends StatelessWidget {
     this.onTap,
     this.showDate = false,
     this.trailingExtra,
+    this.onEdit,
+    this.onDelete,
   });
   final Txn txn;
   final FinanceData fin;
   final VoidCallback? onTap;
   final bool showDate;
   final Widget? trailingExtra;
+
+  /// দেওয়া থাকলে সারিতেই ছোট এডিট ও ডিলিট বাটন
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -313,10 +319,46 @@ class TxnTile extends StatelessWidget {
             color: txn.debtAction != null ? AppColors.debt : null,
           ),
           ?trailingExtra,
+          if (onEdit != null || onDelete != null)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onEdit != null)
+                  _MiniAction(Icons.edit_outlined, tr('এডিট', 'Edit'), onEdit!, outline),
+                if (onDelete != null)
+                  _MiniAction(
+                    Icons.delete_outline,
+                    tr('ডিলিট', 'Delete'),
+                    onDelete!,
+                    AppColors.expense,
+                  ),
+              ],
+            ),
         ],
       ),
     );
   }
+}
+
+class _MiniAction extends StatelessWidget {
+  const _MiniAction(this.icon, this.tooltip, this.onPressed, this.color);
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    icon: Icon(icon, size: 19, color: color),
+    style: IconButton.styleFrom(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      minimumSize: const Size(36, 28),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      visualDensity: VisualDensity.compact,
+    ),
+  );
 }
 
 /// রসিদের ছবি দেখানো

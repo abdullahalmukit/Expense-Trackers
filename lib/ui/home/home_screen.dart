@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../domain/finance.dart';
 import '../../providers.dart';
 import '../entry/entry_sheet.dart';
+import '../entry/txn_details.dart';
 import '../manage/goals_screen.dart';
 import '../manage/budgets_screen.dart';
 import '../manage/wallets_screen.dart';
@@ -190,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 txn: t,
                                 fin: fin,
                                 showDate: true,
-                                onTap: () => showEntrySheet(context, edit: t),
+                                onTap: () => showTxnDetails(context, t),
                               ),
                           ],
                         ),

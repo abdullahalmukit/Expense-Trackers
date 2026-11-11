@@ -21,6 +21,7 @@ import 'package:takar_khata/ui/manage/tags_screen.dart';
 import 'package:takar_khata/ui/manage/wallets_screen.dart';
 import 'package:takar_khata/ui/settings/data_screens.dart';
 import 'package:takar_khata/ui/settings/language_screen.dart';
+import 'package:takar_khata/ui/settings/profile_screen.dart';
 import 'package:takar_khata/ui/settings/settings_screen.dart';
 import 'package:takar_khata/ui/shell.dart';
 
@@ -170,6 +171,7 @@ void main() {
         const TagsScreen(),
         const ExportScreen(),
         const LanguageScreen(),
+        const ProfileScreen(),
         PersonScreen(personId: rafi),
       ]) {
         nav.currentState!.push(MaterialPageRoute(builder: (_) => screen));

@@ -117,23 +117,27 @@ class _ShellState extends ConsumerState<Shell> {
         extendBody: true,
         body: IndexedStack(index: index, children: _pages),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: FloatingActionButton.large(
-          heroTag: 'add',
-          shape: const CircleBorder(),
-          tooltip: tr('নতুন এন্ট্রি', 'New entry'),
-          onPressed: () => showEntrySheet(context),
-          child: const Icon(Icons.add, size: 40),
+        // আগের চেয়ে একটু ছোট + বাটন (৯৬ → ৬৬)
+        floatingActionButton: SizedBox.square(
+          dimension: 66,
+          child: FloatingActionButton(
+            heroTag: 'add',
+            shape: const CircleBorder(),
+            tooltip: tr('নতুন এন্ট্রি', 'New entry'),
+            onPressed: () => showEntrySheet(context),
+            child: const Icon(Icons.add, size: 34),
+          ),
         ),
         bottomNavigationBar: BottomAppBar(
           shape: const CircularNotchedRectangle(),
-          notchMargin: 8,
+          notchMargin: 6,
           height: 72,
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
               item(0, Icons.home_outlined, Icons.home, tr('হোম', 'Home')),
               item(1, Icons.receipt_long_outlined, Icons.receipt_long, tr('হিস্টোরি', 'History')),
-              const SizedBox(width: 96),
+              const SizedBox(width: 80),
               item(2, Icons.pie_chart_outline, Icons.pie_chart, tr('পরিসংখ্যান', 'Statistics')),
               item(3, Icons.handshake_outlined, Icons.handshake, tr('ধার', 'Debt')),
             ],

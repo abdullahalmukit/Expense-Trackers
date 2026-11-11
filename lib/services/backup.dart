@@ -17,7 +17,11 @@ class Backup {
 
   /// যেসব সেটিং ব্যাকআপে যাবে না (নিরাপত্তা বা ডিভাইস-নির্দিষ্ট)
   static bool _skipSetting(String k) =>
-      k.startsWith('lock_') || k.startsWith('alert_') || k == 'last_backup' || k == 'seeded';
+      k.startsWith('lock_') ||
+      k.startsWith('alert_') ||
+      k == 'last_backup' ||
+      k == 'seeded' ||
+      k == 'profile_photo';
 
   static Future<Map<String, dynamic>> build(AppDb db, {DateRange? range}) async {
     final cats = await db.select(db.categories).get();

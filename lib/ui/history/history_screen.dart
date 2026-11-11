@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/dates.dart';
@@ -9,6 +8,7 @@ import '../../data/database.dart';
 import '../../domain/finance.dart';
 import '../../providers.dart';
 import '../entry/entry_sheet.dart';
+import '../entry/txn_details.dart';
 import '../widgets/charts.dart';
 import '../widgets/common.dart';
 import '../../core/i18n.dart';
@@ -94,33 +94,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         (t.debtAction != null && DebtAction.fullLabel(t.debtAction!).contains(query));
   }
 
-  Future<void> _delete(Txn t) async {
-    final repo = ref.read(repoProvider);
-    final effects = ref.read(effectsProvider);
-    await repo.deleteTxn(t.id);
-    HapticFeedback.mediumImpact();
-    effects.afterDelete(t.id);
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          tr('এন্ট্রি মুছে ফেলা হয়েছে (${money(t.amount)})', 'Entry deleted (${money(t.amount)})'),
-        ),
-        duration: Duration(seconds: 5),
-        persist: false,
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () async {
-            await repo.insertTxn(t);
-            effects.afterSave(t);
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final fin = ref.watch(financeProvider);
@@ -189,33 +162,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
       for (final t in txns) {
         rows.add(
-          Dismissible(
+          TxnTile(
             key: ValueKey(t.id),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: AppColors.expense,
-              alignment: Alignment.centerRight,
-              padding: EdgeInsets.only(right: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    tr('মুছুন', 'Delete'),
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(Icons.delete_outline, color: Colors.white),
-                ],
-              ),
-            ),
-            onDismissed: (_) => _delete(t),
-            child: TxnTile(
-              txn: t,
-              fin: fin,
-              showDate: usingRange,
-              onTap: () => showEntrySheet(context, edit: t),
-              trailingExtra: null,
-            ),
+            txn: t,
+            fin: fin,
+            showDate: usingRange,
+            onTap: () => showTxnDetails(context, t),
+            onEdit: () => showEntrySheet(context, edit: t),
+            onDelete: () => deleteTxnWithUndo(context, ref, t),
           ),
         );
       }
