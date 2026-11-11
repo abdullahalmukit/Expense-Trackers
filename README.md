@@ -15,7 +15,12 @@
 | --- | --- | --- | --- | --- |
 | ![](docs/screenshots/02-home-charts.png) | ![](docs/screenshots/06-overview.png) | ![](docs/screenshots/08-person.png) | ![](docs/screenshots/09-export.png) | ![](docs/screenshots/01-home-dark.png) |
 
+| লেনদেনের বিবরণ | প্রোফাইল ও সেটিংস | ভাষা বাছাই | English | ডেভেলপার |
+| --- | --- | --- | --- | --- |
+| ![](docs/screenshots/11-details.png) | ![](docs/screenshots/12-settings.png) | ![](docs/screenshots/13-language.png) | ![](docs/screenshots/14-home-en.png) | ![](docs/screenshots/15-developer.png) |
+
 পুরো পরিকল্পনা: [docs/proposal.md](docs/proposal.md)
+প্রোমো ভিডিও: [স্ক্রিপ্ট](docs/video/script.md) · [Claude Code প্রম্পট](docs/video/claude-code-prompt.md)
 
 ## ফিচার
 
