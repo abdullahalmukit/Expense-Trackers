@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.mukit.takar_khata"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_local_notifications 23 ও androidx.core 1.19 এর জন্য SDK 37 লাগে (পুরনো ফোনেও চলে)
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
