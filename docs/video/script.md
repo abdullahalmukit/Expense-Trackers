@@ -114,14 +114,13 @@
 **পর্দায় লেখা:**
 - টাকার খাতা
 - আপনার টাকার হিসাব, আপনার হাতে
-- [ ফ্রি ডাউনলোড ] বাটন
-- github.com/abdullahalmukit/Expense-Trackers/releases
+- ফ্রি ডাউনলোড - কমেন্টে দেওয়া লিংক থেকে
 - Developed by **Md. Abdul Mukit** · mukit.swe.bd
 
 **দৃশ্য:** নেভি ব্যাকগ্রাউন্ডে লোগো বড় করে, নিচে স্লোগান আর হলুদ "ফ্রি ডাউনলোড" বাটন (হালকা পালস)। একদম নিচে ডেভেলপারের গোল ছবি, নাম আর ওয়েবসাইট। শেষ ১ সেকেন্ড স্থির থাকে।
 
-> **ডাউনলোড লিংক:** GitHub Releases পেজে APK তখনই থাকবে যখন `v1.0.0`-এর মতো একটা ট্যাগ push করবেন (README-তে নিয়ম আছে)।
-> অন্য কোথাও APK রাখলে (Google Drive, mukit.swe.bd) এখানে সেই লিংক বসান।
+> **ডাউনলোড লিংক:** https://drive.google.com/drive/folders/1NwcNoi426MCiWL8j2FvSDxNDuh6SMIRp?usp=sharing
+> অন্য কোথাও APK রাখলে (https://drive.google.com/drive/folders/1NwcNoi426MCiWL8j2FvSDxNDuh6SMIRp?usp=sharing) এখানে সেই লিংক বসান।
 
 ---
 
